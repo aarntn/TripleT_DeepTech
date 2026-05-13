@@ -1,0 +1,13 @@
+location,farm_mw,month,eff_with_cleaning_pct,eff_without_cleaning_pct,efficiency_recovered_pct,kwh_recovered,rm_recovered,carbon_tonnes_avoided,carbon_value_rm
+gcc,1,Jan,96,98,-2,-3528,-1482,-2.064,-83
+gcc,1,Feb,88,91,-3,-5292,-2223,-3.096,-124
+gcc,1,Mar,96,84,12,21170,8891,12.384,495
+gcc,1,Apr,88,77,11,19406,8150,11.352,454
+gcc,1,May,96,70,26,45868,19265,26.833,1073
+gcc,1,Jun,88,65,23,40576,17042,23.737,949
+gcc,1,Jul,96,65,31,54689,22969,31.993,1280
+gcc,1,Aug,88,65,23,40576,17042,23.737,949
+gcc,1,Sep,96,65,31,54689,22969,31.993,1280
+gcc,1,Oct,88,65,23,40576,17042,23.737,949
+gcc,1,Nov,96,65,31,54689,22969,31.993,1280
+gcc,1,Dec,88,65,23,40576,17042,23.737,949
