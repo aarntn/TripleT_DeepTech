@@ -1,3 +1,5 @@
+import { DataSource } from "../hooks/useSolarGuardData";
+
 export type PageId = "panel-management" | "business-roi";
 
 export type NavItem = {
@@ -12,15 +14,16 @@ type SidebarProps = {
   open: boolean;
   onNavigate: (page: PageId) => void;
   onClose: () => void;
+  dataSource: DataSource;
 };
 
-export function Sidebar({ navItems, activePage, open, onNavigate, onClose }: SidebarProps) {
+export function Sidebar({ navItems, activePage, open, onNavigate, onClose, dataSource }: SidebarProps) {
   const content = (
     <aside className="flex h-full w-72 flex-col border-r border-slate-200 bg-slate-950 text-white shadow-xl lg:shadow-none">
       <div className="border-b border-white/10 p-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xl font-bold tracking-normal">SolarDust AI</p>
+            <p className="text-xl font-bold tracking-normal">SolarGuard</p>
             <p className="mt-1 text-sm text-slate-400">Predictive cleaning intelligence</p>
           </div>
           <button
@@ -31,8 +34,10 @@ export function Sidebar({ navItems, activePage, open, onNavigate, onClose }: Sid
             Close
           </button>
         </div>
-        <span className="mt-4 inline-flex rounded-full border border-sky-400/30 bg-sky-400/10 px-3 py-1 text-xs font-bold text-sky-200">
-          Demo Mode
+        <span className={`mt-4 inline-flex rounded-full border px-3 py-1 text-xs font-bold ${
+          dataSource === "backend" ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-200" : "border-sky-400/30 bg-sky-400/10 text-sky-200"
+        }`}>
+          {dataSource === "backend" ? "Live Mode" : "Demo Mode"}
         </span>
       </div>
 
@@ -73,7 +78,11 @@ export function Sidebar({ navItems, activePage, open, onNavigate, onClose }: Sid
 
       <div className="border-t border-white/10 p-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Prototype status</p>
-        <p className="mt-2 text-sm text-slate-300">Frontend-only mock data. No backend services connected.</p>
+        <p className="mt-2 text-sm text-slate-300">
+          {dataSource === "backend" 
+            ? "Connected to SolarGuard API. Real-time telemetry active." 
+            : "Frontend-only mock data. No backend services connected."}
+        </p>
       </div>
     </aside>
   );
