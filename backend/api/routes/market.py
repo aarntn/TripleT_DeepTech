@@ -1,14 +1,21 @@
-from fastapi import APIRouter
+import logging
+
+from fastapi import APIRouter, HTTPException
 
 from services.degradation_model import LOCATIONS
 from services.roi_calculator import HORMUZ_MULTIPLIER
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/locations")
 def get_locations() -> dict:
-    return {"locations": LOCATIONS}
+    try:
+        return {"locations": LOCATIONS}
+    except Exception as exc:
+        logger.exception("Market locations lookup failed: %s", exc)
+        raise HTTPException(status_code=500, detail="Market data error.") from exc
 
 
 @router.get("/hormuz")

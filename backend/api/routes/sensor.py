@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import pandas as pd
@@ -9,6 +10,7 @@ from services.forecaster import forecast as forecast_service
 
 sensor_router = APIRouter()
 forecast_router = APIRouter()
+logger = logging.getLogger(__name__)
 
 DATA_DIR = Path(__file__).parents[3] / "data" / "processed"
 VALID_ARRAYS = {"A1", "A2", "B1", "B2", "C1", "C2"}
@@ -16,8 +18,12 @@ VALID_ARRAYS = {"A1", "A2", "B1", "B2", "C1", "C2"}
 
 @sensor_router.post("/classify", response_model=ClassifyResponse)
 def classify_reading(request: ClassifyRequest) -> ClassifyResponse:
-    result = classify(request.model_dump(exclude={"array_id"}))
-    return ClassifyResponse(**result)
+    try:
+        result = classify(request.model_dump(exclude={"array_id"}))
+        return ClassifyResponse(**result)
+    except Exception as exc:
+        logger.exception("Classifier failed for array %s: %s", request.array_id, exc)
+        raise HTTPException(status_code=500, detail="Classification error.") from exc
 
 
 @sensor_router.get("/latest", response_model=list[SensorReading])
@@ -25,17 +31,25 @@ def get_latest() -> list[SensorReading]:
     csv_path = DATA_DIR / "scenario_dusty_week.csv"
     if not csv_path.exists():
         raise HTTPException(status_code=503, detail="Sensor data unavailable.")
-    df = pd.read_csv(csv_path)
-    latest = (
-        df.sort_values("timestamp")
-        .groupby("array_id", as_index=False)
-        .last()
-    )
-    return [SensorReading(**row) for row in latest.to_dict(orient="records")]
+    try:
+        df = pd.read_csv(csv_path)
+        latest = (
+            df.sort_values("timestamp")
+            .groupby("array_id", as_index=False)
+            .last()
+        )
+        return [SensorReading(**row) for row in latest.to_dict(orient="records")]
+    except Exception as exc:
+        logger.exception("Failed to read sensor data: %s", exc)
+        raise HTTPException(status_code=500, detail="Sensor data read error.") from exc
 
 
 @forecast_router.get("/{array_id}", response_model=list[ForecastPoint])
 def get_forecast(array_id: str) -> list[ForecastPoint]:
     if array_id not in VALID_ARRAYS:
         raise HTTPException(status_code=404, detail=f"Array '{array_id}' not found.")
-    return [ForecastPoint(**p) for p in forecast_service(array_id=array_id, days=3)]
+    try:
+        return [ForecastPoint(**p) for p in forecast_service(array_id=array_id, days=3)]
+    except Exception as exc:
+        logger.exception("Forecast failed for array %s: %s", array_id, exc)
+        raise HTTPException(status_code=500, detail="Forecast error.") from exc
