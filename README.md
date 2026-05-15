@@ -100,6 +100,24 @@ python generate_dataset.py --location gcc --mw 5 --output ../processed/
 python generate_dataset.py --all --output ../processed/
 ```
 
+### Optional real weather data
+
+The checked-in synthetic datasets remain the default for deterministic tests and
+offline demos. To add real weather context, fetch normalized NASA POWER history
+or OpenWeather forecast rows into `data/processed/weather/`:
+
+```bash
+cd data/scripts
+python fetch_weather_data.py --provider nasa-power --start 20240701 --end 20240707 --array-id A1
+python fetch_weather_data.py --provider openweather --array-id A1 --api-key "$OPENWEATHER_API_KEY"
+```
+
+Set `WEATHER_PROVIDER=processed` to make the backend forecaster prefer the
+generated weather CSV before falling back to `forecast_input.csv`. Set
+`WEATHER_PROVIDER=openweather` with `OPENWEATHER_API_KEY` to call OpenWeather
+live from the backend. Keep weather API keys backend-only.
+NASA POWER hourly irradiance is normalized from Wh/m2 to kWh/m2 in the output.
+
 ### Optional research notebooks
 
 The notebook is for EDA/model-development traceability only. It is not required
@@ -161,6 +179,11 @@ MODEL_LOAD_MODE=train-fallback
 # DUST_SCALER_SHA256=
 API_HOST=127.0.0.1
 API_PORT=8000
+WEATHER_PROVIDER=synthetic
+WEATHER_LAT=3.139
+WEATHER_LON=101.6869
+WEATHER_PROCESSED_PATH=data/processed/weather/forecast_weather.csv
+# OPENWEATHER_API_KEY=
 ```
 
 For production, set `APP_ENV=production`, use `SOLARGUARD_API_KEY_SHA256S`

@@ -111,3 +111,28 @@ def test_forecast_unknown_array_returns_generic_404():
 def test_forecast_invalid_array_format_returns_422():
     response = client.get("/api/forecast/ZZ", headers=AUTH_HEADERS)
     assert response.status_code == 422
+
+
+def test_weather_forecast_endpoint_returns_normalized_rows(monkeypatch):
+    monkeypatch.setattr(
+        "api.routes.weather.get_weather_forecast",
+        lambda array_id, days: [
+            {
+                "timestamp": "2024-07-08T07:00:00+00:00",
+                "array_id": array_id,
+                "irradiance_kwh_m2": 1.2,
+                "temp_c": 30.0,
+                "humidity_pct": 75.0,
+                "cloud_cover_pct": 20.0,
+                "rainfall_mm": 0.0,
+                "source": "test",
+            }
+        ],
+    )
+
+    response = client.get("/api/weather/forecast/A1", headers=AUTH_HEADERS)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data[0]["array_id"] == "A1"
+    assert data[0]["source"] == "test"

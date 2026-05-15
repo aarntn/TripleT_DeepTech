@@ -6,6 +6,7 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 
 from core.security import sanitize_log_value
+from services.weather_provider import get_weather_forecast
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,67 @@ _SAFE_DEFAULT = [
     }
     for i in range(3)
 ]
+
+
+def _daily_weather_rows(rows: list[dict], mean_irr: float, legacy_forecast: bool = False):
+    if not rows:
+        return None
+    df = pd.DataFrame(rows)
+    if df.empty or "timestamp" not in df.columns:
+        return None
+
+    df["_date"] = pd.to_datetime(df["timestamp"]).dt.date
+    if legacy_forecast:
+        return (
+            df.groupby("_date")
+            .agg(
+                cloud_cover_pct=("forecast_cloud_cover_pct", "mean"),
+                humidity_pct=("humidity_pct", "mean"),
+                rainfall_mm=("rainfall_mm", "sum"),
+                irradiance_kwh_m2=("forecast_irradiance_kwh_m2", "first"),
+            )
+            .reset_index(drop=True)
+        )
+
+    daily = (
+        df.groupby("_date")
+        .agg(
+            cloud_cover_pct=("cloud_cover_pct", "mean"),
+            humidity_pct=("humidity_pct", "mean"),
+            rainfall_mm=("rainfall_mm", "sum"),
+            irradiance_kwh_m2=("irradiance_kwh_m2", "sum"),
+        )
+        .reset_index(drop=True)
+    )
+    daily["irradiance_kwh_m2"] = daily["irradiance_kwh_m2"].apply(
+        lambda value: mean_irr if float(value) <= 0 else float(value)
+    )
+    return daily
+
+
+def _forecast_weather_rows(array_id: str, days: int, mean_irr: float):
+    weather_rows = get_weather_forecast(
+        array_id=array_id,
+        days=days,
+        fallback_irradiance_kwh_m2=0.0,
+    )
+    if weather_rows:
+        daily = _daily_weather_rows(weather_rows, mean_irr=mean_irr)
+        if daily is not None and not daily.empty:
+            return daily
+
+    fc_csv = DATA_DIR / "forecast_input.csv"
+    if fc_csv.exists() and array_id == "A1":
+        fc_df = pd.read_csv(fc_csv)
+        daily = _daily_weather_rows(
+            fc_df.to_dict(orient="records"),
+            mean_irr=mean_irr,
+            legacy_forecast=True,
+        )
+        if daily is not None and not daily.empty:
+            return daily
+
+    return None
 
 
 def forecast(array_id: str, days: int = 3) -> list[dict]:
@@ -64,25 +126,19 @@ def forecast(array_id: str, days: int = 3) -> list[dict]:
     residuals = y - model.predict(X)
     residual_std = max(float(np.std(residuals)), 0.01)  # ensure non-zero for bounds
 
-    fc_rows = None
-    fc_csv = DATA_DIR / "forecast_input.csv"
-    if fc_csv.exists() and array_id == "A1":
-        fc_df = pd.read_csv(fc_csv)
-        fc_df["_date"] = pd.to_datetime(fc_df["timestamp"]).dt.date
-        fc_rows = fc_df.groupby("_date").first().reset_index(drop=True)
-
     last_day = int(daily["day_idx"].max())
     mean_irr = float(daily["irradiance_kwh_m2"].mean())
+    fc_rows = _forecast_weather_rows(array_id=array_id, days=days, mean_irr=mean_irr)
     results = []
 
     for i in range(days):
         day_idx = last_day + 1 + i
         if fc_rows is not None and i < len(fc_rows):
             row = fc_rows.iloc[i]
-            cloud = float(row.get("forecast_cloud_cover_pct", 20.0))
+            cloud = float(row.get("cloud_cover_pct", 20.0))
             humidity = float(row.get("humidity_pct", 75.0))
             rainfall = float(row.get("rainfall_mm", 0.0))
-            irradiance = float(row.get("forecast_irradiance_kwh_m2", mean_irr))
+            irradiance = float(row.get("irradiance_kwh_m2", mean_irr))
         else:
             cloud, humidity, rainfall, irradiance = 20.0, 75.0, 0.0, mean_irr
 

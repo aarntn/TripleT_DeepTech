@@ -17,7 +17,7 @@ from core.security import (
     SecurityHeadersMiddleware,
     env_bool,
 )
-from api.routes import efficiency, market, roi
+from api.routes import efficiency, market, roi, weather
 from api.routes.sensor import forecast_router, sensor_router
 
 
@@ -60,6 +60,7 @@ def create_app() -> FastAPI:
     app.include_router(roi.router, prefix="/api/roi", tags=["ROI"])
     app.include_router(efficiency.router, prefix="/api/efficiency", tags=["Efficiency"])
     app.include_router(market.router, prefix="/api/market", tags=["Market"])
+    app.include_router(weather.router, prefix="/api/weather", tags=["Weather"])
     app.include_router(sensor_router, prefix="/api/sensor", tags=["Sensor"])
     app.include_router(forecast_router, prefix="/api/forecast", tags=["Forecast"])
 

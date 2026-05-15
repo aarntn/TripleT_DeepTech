@@ -21,6 +21,10 @@ npm-debug.log*
 .env
 .env.local
 
+# Generated real-weather API outputs
+data/raw/weather/
+data/processed/weather/*.csv
+
 # OS/editor
 .DS_Store
 Thumbs.db

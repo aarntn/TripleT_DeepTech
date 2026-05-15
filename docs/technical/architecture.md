@@ -6,7 +6,23 @@ SolarGuard combines the PI 2024000995 automated panel cleaning system with the U
 
 ## Data Layer
 
-Synthetic monthly degradation data lives in `data/processed/` and can be regenerated with `data/scripts/generate_dataset.py`. Raw irradiance and tariff inputs can be added under `data/raw/` as pilot data becomes available.
+Synthetic monthly degradation data lives in `data/processed/` and can be
+regenerated with `data/scripts/generate_dataset.py`. Synthetic sensor scenarios
+are generated with `data/scripts/generate_sensor_data.py` and remain the
+fallback for deterministic tests and offline demos.
+
+Optional real weather data can be fetched with `data/scripts/fetch_weather_data.py`.
+NASA POWER provides historical solar/weather rows, while OpenWeather provides
+short-term forecast rows. Both are normalized into:
+
+`timestamp,array_id,irradiance_kwh_m2,temp_c,humidity_pct,cloud_cover_pct,rainfall_mm,source`
+
+NASA POWER hourly irradiance is converted from Wh/m2 to kWh/m2 during
+normalization.
+
+Generated real-weather outputs are intentionally ignored by git; keep approved
+datasets or API credentials outside the public repository unless explicitly
+reviewed.
 
 ## Backend Layer
 
@@ -16,6 +32,7 @@ The FastAPI backend exposes:
 - `GET /api/efficiency/{location}` for efficiency profiles.
 - `GET /api/market/locations` for location assumptions.
 - `GET /api/market/hormuz` for tariff-shock scenario metadata.
+- `GET /api/weather/forecast/{array_id}` for optional normalized weather forecast rows.
 
 ## Frontend Layer
 
