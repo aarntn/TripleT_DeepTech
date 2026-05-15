@@ -19,38 +19,18 @@ type EnergyTimelineChartProps = {
 };
 
 export function EnergyTimelineChart({ panel, scenario }: EnergyTimelineChartProps) {
-  const data = [
-    ...panel.timeline.map((point) => ({
-      ...point,
-      forecast: null,
-      phase: "Actual",
-    })),
-    ...panel.forecast.map((point) => ({
-      day: point.day,
-      expected: point.expected,
-      actual: null,
-      forecast: point.forecast,
-      efficiency: Math.round((point.forecast / point.expected) * 100),
-      weather: "Forecast",
-      irradiance: null,
-      revenueLoss: Math.max(0, Math.round((point.expected - point.forecast) * 0.42)),
-      phase: "Forecast",
-    })),
-  ];
+  const data = panel.timeline;
 
   const labelDay = scenario === "rainy" ? "Tue" : "Thu";
-  const labelText = scenario === "rainy" ? "Rainy Tuesday / weather event" : "Dust drop on Thursday";
+  const labelText = scenario === "rainy" ? "Rainy Tuesday / weather event" : "Soiling drop on Thursday";
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">7-day energy timeline</p>
-          <h2 className="mt-2 text-xl font-bold text-slate-950">{panel.name}: expected vs actual</h2>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">7-day production timeline</p>
+          <h2 className="mt-2 text-xl font-semibold text-slate-950">{panel.name}: expected vs actual</h2>
         </div>
-        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-600">
-          Forecast next 3 days
-        </span>
       </div>
 
       <div className="mt-5 h-[330px]">
@@ -71,7 +51,7 @@ export function EnergyTimelineChart({ panel, scenario }: EnergyTimelineChartProp
                 const numeric = typeof value === "number" ? value : Number(value);
                 return [Number.isFinite(numeric) ? formatKwh(numeric) : "-", String(name)];
               }}
-              labelStyle={{ color: "#0f172a", fontWeight: 700 }}
+              labelStyle={{ color: "#0f172a", fontWeight: 600 }}
             />
             <Legend wrapperStyle={{ fontSize: 12 }} />
             <ReferenceLine
@@ -97,24 +77,9 @@ export function EnergyTimelineChart({ panel, scenario }: EnergyTimelineChartProp
               connectNulls={false}
               dot={{ r: 3 }}
             />
-            <Line
-              type="monotone"
-              dataKey="forecast"
-              name="Forecast"
-              stroke="#2563eb"
-              strokeWidth={2.4}
-              strokeDasharray="6 5"
-              connectNulls={false}
-              dot={{ r: 3 }}
-            />
           </LineChart>
         </ResponsiveContainer>
       </div>
-
-      <p className="mt-3 text-sm leading-6 text-slate-600">
-        The gap between expected and actual output estimates lost production. The dashed forecast shows what happens
-        if no action is taken over the next three days.
-      </p>
     </section>
   );
 }

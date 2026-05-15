@@ -22,9 +22,15 @@ const barStyles = {
 };
 
 const classificationLabel: Record<ClassificationType, string> = {
-  Dust: "Dust signal",
+  Dust: "Soiling signal",
   Weather: "Weather signal",
   Normal: "Normal",
+};
+
+const statusCopy = {
+  Clean: "Normal",
+  "Dust suspected": "Soiling suspected",
+  "Heavy loss": "High loss",
 };
 
 export function PanelCard({ panel, selected, cleaning, onSelect, onClean }: PanelCardProps) {
@@ -45,17 +51,17 @@ export function PanelCard({ panel, selected, cleaning, onSelect, onClean }: Pane
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-bold text-slate-950">{panel.id}</p>
+          <p className="text-sm font-semibold text-slate-950">{panel.id}</p>
           <p className="text-xs text-slate-500">{panel.name}</p>
         </div>
         <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusStyles[status]}`}>
-          {status}
+          {statusCopy[status]}
         </span>
       </div>
 
       <div className="mt-4">
         <div className="flex items-end justify-between">
-          <p className="text-3xl font-bold text-slate-950">{panel.efficiency}%</p>
+          <p className="text-3xl font-semibold text-slate-950">{panel.efficiency}%</p>
           <p className="text-right text-sm font-semibold text-rose-600">{formatRM(panel.lossToday)}</p>
         </div>
         <div className="mt-3 h-2 rounded-full bg-slate-100">
@@ -66,7 +72,7 @@ export function PanelCard({ panel, selected, cleaning, onSelect, onClean }: Pane
         </div>
         <div className="mt-3 flex items-center justify-between gap-2 text-xs">
           <span className="font-medium text-slate-500">{classificationLabel[panel.classifier.type]}</span>
-          <span className="text-slate-500">loss today</span>
+          <span className="text-slate-500">estimated loss today</span>
         </div>
       </div>
 
@@ -79,7 +85,7 @@ export function PanelCard({ panel, selected, cleaning, onSelect, onClean }: Pane
           }}
           className="mt-4 w-full rounded-md bg-slate-950 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
         >
-          {cleaning ? "Cleaning..." : "Clean this panel"}
+          {cleaning ? "Creating work order..." : "Create work order"}
         </button>
       )}
     </article>

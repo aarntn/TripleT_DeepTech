@@ -47,7 +47,7 @@ export type Scenario = {
 
 const dustyTimeline = (
   actuals: number[],
-  event = "Dust drop",
+  event = "Soiling drop",
 ): TimelinePoint[] => {
   const expected = [610, 616, 620, 618, 622, 625, 628];
   const weather = ["Clear", "Clear", "Clear", "Clear", "Clear", "Hazy", "Clear"];
@@ -85,12 +85,12 @@ const rainyTimeline = (actuals: number[], event = "Rainy Tuesday"): TimelinePoin
 export const scenarios: Record<ScenarioId, Scenario> = {
   dusty: {
     id: "dusty",
-    label: "Dusty week - Farm A",
-    summary: "Stable sun, declining output, dust-led losses.",
+    label: "Soiling week - Farm A",
+    summary: "Stable sun, declining output, soiling-related losses.",
     panels: [
       {
         id: "A1",
-        name: "Array A1",
+        name: "Panel Block A1",
         baseEfficiency: 68,
         baseLossToday: 480,
         lossThisWeek: 2860,
@@ -109,7 +109,7 @@ export const scenarios: Record<ScenarioId, Scenario> = {
       },
       {
         id: "A2",
-        name: "Array A2",
+        name: "Panel Block A2",
         baseEfficiency: 96,
         baseLossToday: 24,
         lossThisWeek: 120,
@@ -128,7 +128,7 @@ export const scenarios: Record<ScenarioId, Scenario> = {
       },
       {
         id: "B1",
-        name: "Array B1",
+        name: "Panel Block B1",
         baseEfficiency: 82,
         baseLossToday: 260,
         lossThisWeek: 1460,
@@ -147,7 +147,7 @@ export const scenarios: Record<ScenarioId, Scenario> = {
       },
       {
         id: "B2",
-        name: "Array B2",
+        name: "Panel Block B2",
         baseEfficiency: 54,
         baseLossToday: 690,
         lossThisWeek: 4210,
@@ -166,7 +166,7 @@ export const scenarios: Record<ScenarioId, Scenario> = {
       },
       {
         id: "C1",
-        name: "Array C1",
+        name: "Panel Block C1",
         baseEfficiency: 74,
         baseLossToday: 210,
         lossThisWeek: 1120,
@@ -185,7 +185,7 @@ export const scenarios: Record<ScenarioId, Scenario> = {
       },
       {
         id: "C2",
-        name: "Array C2",
+        name: "Panel Block C2",
         baseEfficiency: 93,
         baseLossToday: 38,
         lossThisWeek: 180,
@@ -211,7 +211,7 @@ export const scenarios: Record<ScenarioId, Scenario> = {
     panels: [
       {
         id: "A1",
-        name: "Array A1",
+        name: "Panel Block A1",
         baseEfficiency: 79,
         baseLossToday: 190,
         lossThisWeek: 980,
@@ -230,7 +230,7 @@ export const scenarios: Record<ScenarioId, Scenario> = {
       },
       {
         id: "A2",
-        name: "Array A2",
+        name: "Panel Block A2",
         baseEfficiency: 95,
         baseLossToday: 34,
         lossThisWeek: 160,
@@ -238,7 +238,7 @@ export const scenarios: Record<ScenarioId, Scenario> = {
         classifier: {
           type: "Normal",
           confidence: 93,
-          cause: "Array recovered after rain and matches expected output.",
+          cause: "Panel block recovered after rain and matches expected output.",
         },
         timeline: rainyTimeline([586, 470, 492, 560, 600, 614, 616]),
         forecast: [
@@ -249,7 +249,7 @@ export const scenarios: Record<ScenarioId, Scenario> = {
       },
       {
         id: "B1",
-        name: "Array B1",
+        name: "Panel Block B1",
         baseEfficiency: 84,
         baseLossToday: 150,
         lossThisWeek: 820,
@@ -268,7 +268,7 @@ export const scenarios: Record<ScenarioId, Scenario> = {
       },
       {
         id: "B2",
-        name: "Array B2",
+        name: "Panel Block B2",
         baseEfficiency: 71,
         baseLossToday: 330,
         lossThisWeek: 1880,
@@ -287,7 +287,7 @@ export const scenarios: Record<ScenarioId, Scenario> = {
       },
       {
         id: "C1",
-        name: "Array C1",
+        name: "Panel Block C1",
         baseEfficiency: 63,
         baseLossToday: 420,
         lossThisWeek: 2260,
@@ -306,7 +306,7 @@ export const scenarios: Record<ScenarioId, Scenario> = {
       },
       {
         id: "C2",
-        name: "Array C2",
+        name: "Panel Block C2",
         baseEfficiency: 94,
         baseLossToday: 42,
         lossThisWeek: 190,
@@ -314,7 +314,7 @@ export const scenarios: Record<ScenarioId, Scenario> = {
         classifier: {
           type: "Normal",
           confidence: 91,
-          cause: "The array follows the farm baseline and has no cleaning signal.",
+          cause: "The panel block follows the farm baseline and has no cleaning signal.",
         },
         timeline: rainyTimeline([582, 466, 488, 558, 596, 608, 612]),
         forecast: [

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 
 import { DashboardShell } from "./DashboardShell";
-import { PageHeader } from "./PageHeader";
 import type { NavItem, PageId } from "./Sidebar";
 import { BusinessRoiPage } from "./pages/BusinessRoiPage";
+import { OverviewPage } from "./pages/OverviewPage";
+import { PanelDetailPage } from "./pages/PanelDetailPage";
 import { PanelManagementPage } from "./pages/PanelManagementPage";
 import { scenarios, type PanelId, type Scenario, type ScenarioId } from "../data/mockSolarData";
 import { useSolarGuardData } from "../hooks/useSolarGuardData";
@@ -21,27 +22,13 @@ import {
 } from "../utils/solarCalculations";
 
 const navItems: NavItem[] = [
-  { id: "panel-management", label: "Panel Management", description: "Detect, classify, clean" },
-  { id: "business-roi", label: "Business & ROI", description: "Payback, IP, dataset" },
+  { id: "overview", label: "Operations Overview", section: "MONITORING", icon: "overview" },
+  { id: "map-view", label: "Farm Map", section: "MONITORING", icon: "map" },
+  { id: "revenue-intelligence", label: "Revenue & ROI", section: "INSIGHTS", icon: "revenue" },
 ];
 
-const pageMeta: Record<PageId, { title: string; eyebrow: string; description: string }> = {
-  "panel-management": {
-    title: "Panel management command center",
-    eyebrow: "Operations",
-    description:
-      "Detect underperforming arrays, separate dust from weather, forecast loss, and trigger cleaning from one operations view.",
-  },
-  "business-roi": {
-    title: "Business case and ROI intelligence",
-    eyebrow: "Business case",
-    description:
-      "Model farm economics, tariff scenarios, IP water synergy, carbon credits, payback, and the transparent mock dataset.",
-  },
-};
-
 export default function Dashboard() {
-  const [activePage, setActivePage] = useState<PageId>("panel-management");
+  const [activePage, setActivePage] = useState<PageId>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<PanelId>("A1");
   const [sensorTick, setSensorTick] = useState(0);
@@ -234,6 +221,11 @@ export default function Dashboard() {
       });
   };
 
+  const openPanelDetail = (id: string) => {
+    setSelectedId(id as PanelId);
+    setActivePage("panel-detail");
+  };
+
   const page = (() => {
     if (loading) {
       return (
@@ -247,7 +239,7 @@ export default function Dashboard() {
     }
 
     switch (activePage) {
-      case "business-roi":
+      case "revenue-intelligence":
         return (
           <BusinessRoiPage
             farmMw={farmMw}
@@ -266,68 +258,41 @@ export default function Dashboard() {
             dataSource={source}
           />
         );
-      case "panel-management":
-      default:
+      case "panel-detail":
         return (
-          <PanelManagementPage
-            scenario={scenario}
-            scenarioId={scenarioId}
-            panels={panels}
-            selectedPanel={selectedPanel}
-            cleaningIds={cleaningIds}
+          <PanelDetailPage
+            panel={selectedPanel}
             sensorTick={sensorTick}
-            totals={totals}
-            recommendation={recommendation}
-            dirtyCount={dirtyCount}
-            onSelect={(id) => setSelectedId(id as PanelId)}
-            onClean={cleanPanel}
-            onCleanAll={cleanAllDirtyPanels}
-            dataSource={source}
-            lastUpdated={lastUpdated}
-            onRefresh={refresh}
-            refreshing={refreshing}
-            error={error}
-            onClassify={() => classifyArray(selectedId)}
+            onBack={() => setActivePage("map-view")}
           />
         );
+      case "map-view":
+        return (
+          <PanelManagementPage
+            panels={panels}
+            cleaningIds={cleaningIds}
+            scenarioId={scenarioId}
+            onClean={cleanPanel}
+          />
+        );
+      case "overview":
+      default:
+        return <OverviewPage totals={totals} panels={panels} />;
     }
   })();
-
-  const meta = pageMeta[activePage];
 
   return (
     <DashboardShell
       activePage={activePage}
       navItems={navItems}
       sidebarOpen={sidebarOpen}
+      fullHeight={activePage === "map-view"}
       onNavigate={setActivePage}
       onOpenSidebar={() => setSidebarOpen(true)}
       onCloseSidebar={() => setSidebarOpen(false)}
       dataSource={source}
     >
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-        <PageHeader
-          title={meta.title}
-          eyebrow={meta.eyebrow}
-          description={meta.description}
-        />
-        {source !== "mock" && (
-          <div className="flex flex-col items-end gap-2 pt-1">
-            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
-              <span className={`h-2.5 w-2.5 rounded-full ${source === "backend" ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                {source === "backend" ? "Backend Live" : "Demo Fallback"}
-              </span>
-            </div>
-            {lastUpdated && (
-              <p className="text-[10px] font-medium text-slate-400">
-                Last sync: {lastUpdated.toLocaleTimeString()}
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-      <div className="mt-8">{page}</div>
+      {page}
     </DashboardShell>
   );
 }

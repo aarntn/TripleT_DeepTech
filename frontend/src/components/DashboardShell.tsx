@@ -8,6 +8,7 @@ type DashboardShellProps = {
   navItems: NavItem[];
   sidebarOpen: boolean;
   children: ReactNode;
+  fullHeight?: boolean;
   onNavigate: (page: PageId) => void;
   onOpenSidebar: () => void;
   onCloseSidebar: () => void;
@@ -19,13 +20,14 @@ export function DashboardShell({
   navItems,
   sidebarOpen,
   children,
+  fullHeight = false,
   onNavigate,
   onOpenSidebar,
   onCloseSidebar,
   dataSource,
 }: DashboardShellProps) {
   return (
-    <main className="min-h-screen bg-[#f5f7fb] text-slate-950">
+    <main className={`${fullHeight ? "h-screen overflow-hidden" : "min-h-screen"} bg-[#fafafa] text-[#181d27]`}>
       <Sidebar
         navItems={navItems}
         activePage={activePage}
@@ -34,19 +36,21 @@ export function DashboardShell({
         onClose={onCloseSidebar}
         dataSource={dataSource}
       />
-      <div className="lg:pl-72">
-        <div className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur lg:hidden">
-          <button
-            type="button"
-            onClick={onOpenSidebar}
-            className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 shadow-sm"
-          >
-            Menu
-          </button>
-          <p className="text-sm font-bold text-slate-950">SolarGuard</p>
-          <span className="h-9 w-16" />
-        </div>
-        <div className="mx-auto max-w-7xl px-5 py-6 lg:px-8">{children}</div>
+      <div className={`lg:pl-[280px] ${fullHeight ? "h-full" : ""}`}>
+        {!fullHeight && (
+          <div className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur lg:hidden">
+            <button
+              type="button"
+              onClick={onOpenSidebar}
+              className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm"
+            >
+              Menu
+            </button>
+            <p className="text-sm font-semibold text-slate-950">SolarDust AI</p>
+            <span className="h-9 w-16" />
+          </div>
+        )}
+        <div className={fullHeight ? "h-full" : "w-full px-5 py-8 lg:px-8"}>{children}</div>
       </div>
     </main>
   );

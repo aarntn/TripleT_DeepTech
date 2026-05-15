@@ -1,6 +1,6 @@
 import { ROICalculator } from "../ROICalculator";
 import { formatRM, type MarketKey, type MarketProfile, type RoiResult } from "../../utils/solarCalculations";
-import { DataSource } from "../../hooks/useSolarGuardData";
+import type { DataSource } from "../../hooks/useSolarGuardData";
 
 type BusinessRoiPageProps = {
   farmMw: number;
@@ -37,9 +37,11 @@ export function BusinessRoiPage(props: BusinessRoiPageProps) {
               {dataSource === "backend" ? " Real-time backend ROI model." : " Mock assumptions for demo transparency."}
             </p>
           </div>
-          <span className={`rounded-full px-3 py-1 text-xs font-bold shadow-sm ${
-            dataSource === "backend" ? "bg-emerald-100 text-emerald-700" : "bg-white text-slate-600"
-          }`}>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-bold shadow-sm ${
+              dataSource === "backend" ? "bg-emerald-100 text-emerald-700" : "bg-white text-slate-600"
+            }`}
+          >
             {dataSource === "backend" ? "Backend Live" : "Frontend-only data"}
           </span>
         </div>

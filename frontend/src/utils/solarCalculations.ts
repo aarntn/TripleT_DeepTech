@@ -90,7 +90,7 @@ export const getRecommendationCopy = (panel: RuntimePanel, declining: boolean) =
   if (panel.classifier.type === "Normal") {
     return {
       title: `${panel.name} is operating normally.`,
-      action: "No cleaning is needed. Keep monitoring live sensor readings.",
+      action: "No cleaning action recommended. Continue monitoring live output and irradiance.",
       impact: "RM 0 immediate cleaning value",
       tone: "normal",
     };
@@ -98,19 +98,19 @@ export const getRecommendationCopy = (panel: RuntimePanel, declining: boolean) =
 
   if (panel.classifier.type === "Weather") {
     return {
-      title: `${panel.name} loss is weather-led.`,
-      action: "Do not dispatch cleaning yet. Recheck after irradiance recovers.",
+      title: `${panel.name} loss appears weather-related.`,
+      action: "Hold cleaning dispatch. Recheck this block after irradiance returns to normal.",
       impact: `${formatRM(panel.lossThisWeek)} at risk this week, but cleaning impact is low`,
       tone: "weather",
     };
   }
 
   return {
-    title: `${panel.name} shows dust accumulation.`,
+    title: `${panel.name} shows soiling accumulation.`,
     action: declining
-      ? "Cleaning is recommended today. Forecast loss is still declining."
-      : "Cleaning is recommended during the next maintenance window.",
-    impact: `Estimated saving: ${formatRM(panel.savedIfCleaned)} this week`,
+      ? "Create a cleaning work order today. Forecast output is still declining."
+      : "Create a cleaning work order during the next maintenance window.",
+    impact: `Estimated recovery: ${formatRM(panel.savedIfCleaned)} this week`,
     tone: "dust",
   };
 };
@@ -150,7 +150,7 @@ export const marketProfiles: Record<MarketKey, MarketProfile> = {
     irradiance: 5.8,
     waterSelfSupply: 0.18,
     waterSavedPerMwMonth: 1850,
-    note: "High irradiance with heavier dust loading and lower water self-supply.",
+    note: "High irradiance with heavier soiling load and lower water self-supply.",
     waterNote: "Assumes arid climate operation with imported or stored cleaning water.",
     effWith: [96, 88, 96, 88, 96, 88, 96, 88, 96, 88, 96, 88],
     effWithout: [98, 91, 84, 77, 70, 65, 65, 65, 65, 65, 65, 65],
@@ -222,9 +222,9 @@ export const calculateRoi = (
     cumulative,
     waterSaved,
     waterSelfSupply: market.waterSelfSupply,
-    pitch: `For a ${farmMw} MW farm, dirty panels may cost ${formatRM(
+    pitch: `For a ${farmMw} MW farm, soiled panel blocks may cost ${formatRM(
       annualSavings,
-    )} per year. Installing the UM cleaning system could pay back in ${Number.isFinite(payback) ? payback.toFixed(1) : "N/A"} years.`,
+    )} per year. The cleaning system could pay back in ${Number.isFinite(payback) ? payback.toFixed(1) : "N/A"} years.`,
   };
 };
 
