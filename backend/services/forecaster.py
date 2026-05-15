@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 
+from core.security import sanitize_log_value
+
 logger = logging.getLogger(__name__)
 
 DATA_DIR = Path(__file__).parents[2] / "data" / "processed"
@@ -27,7 +29,10 @@ _SAFE_DEFAULT = [
 def forecast(array_id: str, days: int = 3) -> list[dict]:
     csv_path = DATA_DIR / "scenario_dusty_week.csv"
     if not csv_path.exists() or array_id not in VALID_ARRAYS:
-        logger.warning("Forecast data unavailable for %s; returning safe default.", array_id)
+        logger.warning(
+            "Forecast data unavailable for %s; returning safe default.",
+            sanitize_log_value(array_id),
+        )
         return _SAFE_DEFAULT[:days]
 
     df = pd.read_csv(csv_path)

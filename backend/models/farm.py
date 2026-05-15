@@ -1,12 +1,14 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, FiniteFloat
 
 
 class FarmRequest(BaseModel):
-    mw: float = Field(..., gt=0, le=50, description="Installed farm capacity in MW")
+    model_config = ConfigDict(extra="forbid")
+
+    mw: FiniteFloat = Field(..., gt=0, le=50, description="Installed farm capacity in MW")
     location: Literal["malaysia", "gcc"]
-    tariff_rm_per_kwh: float = Field(..., gt=0, le=2)
+    tariff_rm_per_kwh: FiniteFloat = Field(..., gt=0, le=2)
     hormuz: bool = False
 
 

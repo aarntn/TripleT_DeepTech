@@ -1,0 +1,63 @@
+name: Backend Security Checks
+
+on:
+  push:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-security.yml"
+      - ".gitignore"
+      - ".env.example"
+      - "README.md"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-security.yml"
+      - ".gitignore"
+      - ".env.example"
+      - "README.md"
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: test
+      MODEL_LOAD_MODE: train-fallback
+      SOLARGUARD_API_KEYS: test-api-key
+      ENABLE_API_DOCS: "false"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Create clean backend virtualenv
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt pytest pip-audit
+
+      - name: Dependency consistency
+        run: |
+          . .venv/bin/activate
+          python -m pip check
+
+      - name: Backend tests
+        run: |
+          . .venv/bin/activate
+          python -m pytest backend/tests
+
+      - name: Dependency vulnerability audit
+        run: |
+          . .venv/bin/activate
+          pip-audit -r backend/requirements.txt
+
+      - name: Install gitleaks
+        run: |
+          mkdir -p "$HOME/bin"
+          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | sh -s -- -b "$HOME/bin"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Secret scan
+        run: gitleaks detect --source . --redact

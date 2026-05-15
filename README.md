@@ -58,6 +58,10 @@ solarguard/
     └── commercial/            # Unit economics, market analysis
 ```
 
+Additional docs are organized under `docs/ip/` for patent/reference PDFs and
+`docs/prompts/` for prompt/spec artifacts. The backend also includes `core/`
+security/error helpers and `scripts/` operational checks.
+
 ---
 
 ## Quick start
@@ -79,9 +83,12 @@ python -m venv venv
 # Windows: .\venv\Scripts\activate
 # macOS/Linux: source venv/bin/activate
 pip install -r requirements.txt
+# Windows PowerShell: $env:SOLARGUARD_API_KEYS="dev-local-key"
+# macOS/Linux: export SOLARGUARD_API_KEYS=dev-local-key
 uvicorn main:app --reload
 # -> http://localhost:8000
-# -> Swagger docs at /docs
+# Protected endpoints require: Authorization: Bearer dev-local-key
+# Optional docs: set ENABLE_API_DOCS=true, then open /docs with the same auth header
 ```
 
 ### Generate dataset
@@ -93,7 +100,10 @@ python generate_dataset.py --location gcc --mw 5 --output ../processed/
 python generate_dataset.py --all --output ../processed/
 ```
 
-### Notebooks
+### Optional research notebooks
+
+The notebook is for EDA/model-development traceability only. It is not required
+to run the frontend, backend, tests, or deployment.
 
 ```bash
 pip install jupyter
@@ -121,6 +131,8 @@ jupyter notebook notebooks/
 | PI 2024000995 | System and Method for Cleaning a Solar Panel | 8 | 7 | Pilot-tested, commercial-ready |
 | UI 2023002890 | Solar-Heat-Water Harvester | 3 | 3 | Lab-validated, field pilot pending |
 
+Reference PDFs live in `docs/ip/`.
+
 For licensing enquiries: **umcie@um.edu.my** - Tel: +603-79677351
 
 ---
@@ -133,8 +145,48 @@ Copy `.env.example` to `.env` and fill in values before running the backend.
 CARBON_PRICE_RM=40
 DEFAULT_TARIFF_MY=0.35
 DEFAULT_TARIFF_GCC=0.42
-API_HOST=0.0.0.0
+APP_ENV=development
+SOLARGUARD_API_KEYS=dev-local-key
+# SOLARGUARD_API_KEY_SHA256S=
+CORS_ORIGINS=http://localhost:5173
+TRUSTED_HOSTS=localhost,127.0.0.1
+TRUSTED_PROXY_IPS=
+MAX_REQUEST_BYTES=65536
+RATE_LIMIT_PER_MINUTE=120
+SENSITIVE_RATE_LIMIT_PER_MINUTE=20
+ENABLE_API_DOCS=false
+ENABLE_HSTS=false
+MODEL_LOAD_MODE=train-fallback
+# DUST_CLASSIFIER_SHA256=
+# DUST_SCALER_SHA256=
+API_HOST=127.0.0.1
 API_PORT=8000
+```
+
+For production, set `APP_ENV=production`, use `SOLARGUARD_API_KEY_SHA256S`
+instead of plaintext keys, keep `ENABLE_API_DOCS=false`, set exact
+`CORS_ORIGINS` and `TRUSTED_HOSTS`, and run behind TLS plus an external
+gateway or reverse-proxy rate limiter for multi-worker deployments. In-memory
+rate limits are per process.
+
+Model loading defaults to `MODEL_LOAD_MODE=train-fallback` only outside
+production. Production requires `MODEL_LOAD_MODE=verified` plus
+`DUST_CLASSIFIER_SHA256` and `DUST_SCALER_SHA256`. Generate approved hashes
+from reviewed model artifacts with:
+
+```powershell
+Get-FileHash backend\models\dust_classifier.joblib -Algorithm SHA256
+Get-FileHash backend\models\dust_scaler.joblib -Algorithm SHA256
+```
+
+Only deployment owners should update those hash values. If a model file and
+its trusted hash can both be changed by the same attacker, hash verification no
+longer proves provenance.
+
+Optional authenticated load smoke test against a running backend:
+
+```bash
+python backend/scripts/load_smoke.py --api-key dev-local-key
 ```
 
 ---

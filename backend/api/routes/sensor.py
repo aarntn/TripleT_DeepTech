@@ -2,10 +2,11 @@ import logging
 from pathlib import Path
 
 import pandas as pd
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Path as PathParam
 
+from core.security import sanitize_log_value
 from models.sensor import ClassifyRequest, ClassifyResponse, ForecastPoint, SensorReading
-from services.dust_classifier import classify
+from services.dust_classifier import ClassifierInputError, ModelUnavailableError, classify
 from services.forecaster import forecast as forecast_service
 
 sensor_router = APIRouter()
@@ -21,8 +22,17 @@ def classify_reading(request: ClassifyRequest) -> ClassifyResponse:
     try:
         result = classify(request.model_dump(exclude={"array_id"}))
         return ClassifyResponse(**result)
+    except ClassifierInputError as exc:
+        raise HTTPException(status_code=422, detail="Classifier input is invalid.") from exc
+    except ModelUnavailableError as exc:
+        logger.exception("Classifier unavailable for array %s", sanitize_log_value(request.array_id))
+        raise HTTPException(status_code=503, detail="Classifier unavailable.") from exc
     except Exception as exc:
-        logger.exception("Classifier failed for array %s: %s", request.array_id, exc)
+        logger.exception(
+            "Classifier failed for array %s: %s",
+            sanitize_log_value(request.array_id),
+            exc,
+        )
         raise HTTPException(status_code=500, detail="Classification error.") from exc
 
 
@@ -45,11 +55,13 @@ def get_latest() -> list[SensorReading]:
 
 
 @forecast_router.get("/{array_id}", response_model=list[ForecastPoint])
-def get_forecast(array_id: str) -> list[ForecastPoint]:
+def get_forecast(
+    array_id: str = PathParam(..., min_length=2, max_length=2, pattern=r"^[A-Z][0-9]$")
+) -> list[ForecastPoint]:
     if array_id not in VALID_ARRAYS:
-        raise HTTPException(status_code=404, detail=f"Array '{array_id}' not found.")
+        raise HTTPException(status_code=404, detail="Array not found.")
     try:
         return [ForecastPoint(**p) for p in forecast_service(array_id=array_id, days=3)]
     except Exception as exc:
-        logger.exception("Forecast failed for array %s: %s", array_id, exc)
+        logger.exception("Forecast failed for array %s: %s", sanitize_log_value(array_id), exc)
         raise HTTPException(status_code=500, detail="Forecast error.") from exc

@@ -43,6 +43,57 @@ def test_classify_request_rejects_negative_rainfall():
         )
 
 
+def test_classify_request_rejects_unrealistic_numeric_inputs():
+    invalid_values = [
+        {"irradiance_kwh_m2": 21.0},
+        {"rainfall_mm": 501.0},
+        {"soiling_loss_pct": 101.0},
+        {"humidity_pct": float("inf")},
+        {"cloud_cover_pct": float("nan")},
+    ]
+
+    for override in invalid_values:
+        data = {
+            "array_id": "A1",
+            "efficiency_pct": 80.0,
+            "irradiance_kwh_m2": 3.2,
+            "cloud_cover_pct": 20.0,
+            "humidity_pct": 80.0,
+            "rainfall_mm": 0.0,
+            "soiling_loss_pct": 22.0,
+        }
+        data.update(override)
+        with pytest.raises(ValidationError):
+            ClassifyRequest(**data)
+
+
+def test_classify_request_rejects_invalid_array_id():
+    with pytest.raises(ValidationError):
+        ClassifyRequest(
+            array_id="AA",
+            efficiency_pct=80.0,
+            irradiance_kwh_m2=3.2,
+            cloud_cover_pct=20.0,
+            humidity_pct=80.0,
+            rainfall_mm=0.0,
+            soiling_loss_pct=22.0,
+        )
+
+
+def test_classify_request_rejects_extra_fields():
+    with pytest.raises(ValidationError):
+        ClassifyRequest(
+            array_id="A1",
+            efficiency_pct=80.0,
+            irradiance_kwh_m2=3.2,
+            cloud_cover_pct=20.0,
+            humidity_pct=80.0,
+            rainfall_mm=0.0,
+            soiling_loss_pct=22.0,
+            unexpected="value",
+        )
+
+
 def test_forecast_point_bounds_integrity():
     point = ForecastPoint(
         date="Day 8",

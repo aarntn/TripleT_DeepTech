@@ -62,13 +62,3 @@ def get_monthly_efficiency(location: Literal["malaysia", "gcc"]) -> list[Efficie
         )
         for index, month in enumerate(MONTHS)
     ]
-
-
-def get_recovery_percent(location: Literal["malaysia", "gcc"]) -> list[dict[str, float | str]]:
-    return [
-        {
-            "month": row.month,
-            "recovery_pct": round(row.eff_with - row.eff_without, 1),
-        }
-        for row in get_monthly_efficiency(location)
-    ]
