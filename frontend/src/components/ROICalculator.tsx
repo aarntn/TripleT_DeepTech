@@ -19,6 +19,7 @@ import {
   type MarketProfile,
   type RoiResult,
 } from "../utils/solarCalculations";
+import { DataSource } from "../hooks/useSolarGuardData";
 
 const chartGrid = "#e2e8f0";
 const tick = "#64748b";
@@ -37,6 +38,7 @@ type ROICalculatorProps = {
   onTariffChange: (value: number) => void;
   onSystemCostChange: (value: number) => void;
   onHormuzShockChange: (value: boolean) => void;
+  dataSource: DataSource;
 };
 
 export function ROICalculator({
@@ -53,7 +55,10 @@ export function ROICalculator({
   onTariffChange,
   onSystemCostChange,
   onHormuzShockChange,
+  dataSource,
 }: ROICalculatorProps) {
+  const isBackend = dataSource === "backend";
+
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -66,7 +71,11 @@ export function ROICalculator({
             UM Auto Cleaner PI 2024000995 + Water Harvester UI 2023002890
           </p>
         </div>
-        <span className="rounded-full bg-indigo-50 px-3 py-1 text-sm font-bold text-indigo-700">Frontend mock</span>
+        <span className={`rounded-full px-3 py-1 text-sm font-bold shadow-sm ${
+          isBackend ? "bg-emerald-50 text-emerald-700" : "bg-indigo-50 text-indigo-700"
+        }`}>
+          {isBackend ? "Backend Live" : "Frontend mock"}
+        </span>
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
@@ -123,20 +132,26 @@ export function ROICalculator({
           />
         </div>
 
-        <div className="rounded-lg bg-slate-50 p-4">
+        <div className={`rounded-lg p-4 ${isBackend ? "bg-slate-100 opacity-80" : "bg-slate-50"}`}>
           <div className="flex items-center justify-between gap-4">
             <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Cleaning system cost</span>
             <span className="text-lg font-bold text-slate-950">{formatRM(systemCost)}</span>
           </div>
-          <input
-            type="range"
-            min={120_000}
-            max={1_200_000}
-            step={20_000}
-            value={systemCost}
-            onChange={(event) => onSystemCostChange(Number(event.target.value))}
-            className="mt-4 w-full accent-emerald-600"
-          />
+          {isBackend ? (
+            <p className="mt-4 text-xs font-medium text-slate-500 italic">
+              * Automatically calculated by backend based on farm capacity (MW).
+            </p>
+          ) : (
+            <input
+              type="range"
+              min={120_000}
+              max={1_200_000}
+              step={20_000}
+              value={systemCost}
+              onChange={(event) => onSystemCostChange(Number(event.target.value))}
+              className="mt-4 w-full accent-emerald-600"
+            />
+          )}
         </div>
 
         <div className="rounded-lg bg-slate-50 p-4">

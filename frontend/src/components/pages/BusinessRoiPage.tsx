@@ -1,5 +1,6 @@
 import { ROICalculator } from "../ROICalculator";
 import { formatRM, type MarketKey, type MarketProfile, type RoiResult } from "../../utils/solarCalculations";
+import { DataSource } from "../../hooks/useSolarGuardData";
 
 type BusinessRoiPageProps = {
   farmMw: number;
@@ -15,10 +16,11 @@ type BusinessRoiPageProps = {
   onTariffChange: (value: number) => void;
   onSystemCostChange: (value: number) => void;
   onHormuzShockChange: (value: boolean) => void;
+  dataSource: DataSource;
 };
 
 export function BusinessRoiPage(props: BusinessRoiPageProps) {
-  const { farmMw, market, effectiveTariff, roi } = props;
+  const { farmMw, market, effectiveTariff, roi, dataSource } = props;
 
   return (
     <div className="space-y-5">
@@ -31,11 +33,14 @@ export function BusinessRoiPage(props: BusinessRoiPageProps) {
               Monthly dataset - {farmMw} MW, {market.label}
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              Mock assumptions for demo transparency. Effective tariff: RM {effectiveTariff.toFixed(2)}/kWh.
+              Effective tariff: RM {effectiveTariff.toFixed(2)}/kWh.
+              {dataSource === "backend" ? " Real-time backend ROI model." : " Mock assumptions for demo transparency."}
             </p>
           </div>
-          <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-600 shadow-sm">
-            Frontend-only data
+          <span className={`rounded-full px-3 py-1 text-xs font-bold shadow-sm ${
+            dataSource === "backend" ? "bg-emerald-100 text-emerald-700" : "bg-white text-slate-600"
+          }`}>
+            {dataSource === "backend" ? "Backend Live" : "Frontend-only data"}
           </span>
         </div>
         <div className="overflow-x-auto">

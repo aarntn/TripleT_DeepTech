@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 
 import { DashboardShell } from "./DashboardShell";
 import { PageHeader } from "./PageHeader";
@@ -6,6 +6,8 @@ import type { NavItem, PageId } from "./Sidebar";
 import { BusinessRoiPage } from "./pages/BusinessRoiPage";
 import { PanelManagementPage } from "./pages/PanelManagementPage";
 import { scenarios, type PanelId, type Scenario, type ScenarioId } from "../data/mockSolarData";
+import { useSolarGuardData } from "../hooks/useSolarGuardData";
+import { api, ROIResponse } from "../lib/api";
 import {
   buildCleanedForecast,
   buildCleanedTimeline,
@@ -50,6 +52,13 @@ export default function Dashboard() {
   const [tariff, setTariff] = useState(marketProfiles.malaysia.baseTariff);
   const [systemCost, setSystemCost] = useState(600_000);
   const [hormuzShock, setHormuzShock] = useState(false);
+  const [hormuzMultiplier, setHormuzMultiplier] = useState(1.25);
+
+  const scenarioId: ScenarioId = "dusty";
+  const { sensors, classification, forecasts, weather, loading, refreshing, error, source, lastUpdated, classifyArray, refresh } = 
+    useSolarGuardData(scenarioId, selectedId);
+
+  const [backendRoi, setBackendRoi] = useState<ROIResponse | null>(null);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -63,35 +72,140 @@ export default function Dashboard() {
     setTariff(marketProfiles[marketKey].baseTariff);
   }, [marketKey]);
 
-  const scenarioId: ScenarioId = "dusty";
+  // Load Hormuz multiplier and potentially locations from backend
+  useEffect(() => {
+    if (source === "backend") {
+      api.getHormuz().then(res => setHormuzMultiplier(res.tariff_multiplier)).catch(console.error);
+    }
+  }, [source]);
+
+  const fetchRoi = useCallback(async () => {
+    if (source !== "backend") return;
+    try {
+      const result = await api.calculateROI({
+        mw: farmMw,
+        location: marketKey,
+        tariff_rm_per_kwh: tariff,
+        hormuz: hormuzShock,
+      });
+      setBackendRoi(result);
+      // Sync system cost from backend
+      setSystemCost(result.system_cost_rm);
+    } catch (err) {
+      console.error("ROI calculation failed:", err);
+    }
+  }, [farmMw, marketKey, tariff, hormuzShock, source]);
+
+  useEffect(() => {
+    fetchRoi();
+  }, [fetchRoi]);
+
   const scenario: Scenario = {
     ...scenarios[scenarioId],
-    label: "Farm A live monitoring",
+    label: source === "backend" ? "Farm A live monitoring" : "Farm A (Demo Fallback)",
     summary:
-      "Weather forecast input is treated as an automatic signal. Current forecast shows stable irradiance, so persistent output drops are prioritized as likely soiling unless a weather event explains them.",
+      source === "backend" 
+        ? "Connected to SolarGuard API. Real-time sensor and weather telemetry driving classification."
+        : "Weather forecast input is treated as an automatic signal. Current forecast shows stable irradiance, so persistent output drops are prioritized as likely soiling unless a weather event explains them.",
   };
+  
   const market = marketProfiles[marketKey];
-  const effectiveTariff = hormuzShock ? tariff * 1.25 : tariff;
-  const roi = useMemo(
-    () => calculateRoi(farmMw, systemCost, market, effectiveTariff),
-    [farmMw, systemCost, market, effectiveTariff],
-  );
+  const effectiveTariff = hormuzShock ? tariff * hormuzMultiplier : tariff;
+  
+  const roi = useMemo(() => {
+    if (source === "backend" && backendRoi) {
+      return {
+        annualLoss: backendRoi.annual_revenue_rm,
+        annualSavings: backendRoi.annual_revenue_rm,
+        annualKwhRecovered: backendRoi.annual_kwh_recovered,
+        annualCarbon: backendRoi.annual_carbon_rm,
+        annualNet: backendRoi.annual_net_rm,
+        npv: backendRoi.npv_rm,
+        payback: backendRoi.payback_years,
+        systemCost: backendRoi.system_cost_rm, // Added explicitly
+        monthly: backendRoi.monthly.map((m: any) => ({
+          month: m.month,
+          effWith: m.eff_with,
+          effWithout: m.eff_without,
+          revenueRecovered: m.rm_recovered,
+          kwhRecovered: m.kwh_recovered,
+          carbonCredit: m.carbon_value_rm,
+        })),
+        cumulative: backendRoi.cumulative.map((c: any) => ({
+          year: c.year,
+          systemCostK: c.system_cost_k,
+          cumSavingsK: c.cum_savings_k,
+        })),
+        waterSaved: Math.round(farmMw * market.waterSavedPerMwMonth),
+        waterSelfSupply: market.waterSelfSupply,
+        pitch: `For a ${farmMw} MW farm, dirty panels may cost RM ${backendRoi.annual_revenue_rm.toLocaleString()} per year. Installing the UM cleaning system could pay back in ${backendRoi.payback_years.toFixed(1)} years.`
+      };
+    }
+    const baseRoi = calculateRoi(farmMw, systemCost, market, effectiveTariff);
+    return { ...baseRoi, systemCost }; // Ensure systemCost is present
+  }, [farmMw, systemCost, market, effectiveTariff, source, backendRoi, hormuzMultiplier]);
 
-  const panels = useMemo(
-    () => buildRuntimePanels(scenario.panels, cleanedIds, sensorTick),
-    [scenario.panels, cleanedIds, sensorTick],
-  );
+  // Adapt backend sensors to panels if available
+  const panels = useMemo(() => {
+    const basePanels = buildRuntimePanels(scenarios[scenarioId].panels, cleanedIds, sensorTick);
+    if (source !== "backend") return basePanels;
+
+    return basePanels.map(p => {
+      const sensor = sensors.find(s => s.array_id === p.id);
+      if (!sensor) return p;
+
+      const classifier = classification[p.id] || p.classifier;
+
+      return {
+        ...p,
+        efficiency: Math.round(sensor.efficiency_pct),
+        lossToday: Math.max(0, Math.round(sensor.expected_output_kwh - sensor.actual_output_kwh)),
+        classifier: {
+          type: classifier.type as any,
+          confidence: classifier.confidence,
+          cause: classifier.cause,
+        }
+      };
+    });
+  }, [scenarioId, cleanedIds, sensorTick, sensors, classification, source]);
 
   const selectedPanel = useMemo(() => {
     const panel = panels.find((item) => item.id === selectedId) ?? panels[0];
-    if (!panel.cleaned) return panel;
+    
+    // Inject backend forecast and weather if available
+    const backendForecast = forecasts[selectedId];
+    const backendWeather = weather[selectedId];
+
+    let adaptedPanel = { ...panel };
+
+    if (source === "backend" && backendForecast) {
+      adaptedPanel.forecast = backendForecast.map((f, i) => {
+        // Find matching weather if available
+        const w = backendWeather?.[i];
+        let weatherLabel = "Forecast";
+        if (w) {
+          if (w.rainfall_mm > 0.5) weatherLabel = "Rain";
+          else if (w.cloud_cover_pct > 60) weatherLabel = "Cloudy";
+          else weatherLabel = "Clear";
+        }
+
+        return {
+          day: f.date,
+          expected: panel.forecast[0]?.expected || 600, // Fallback expected
+          forecast: Math.round(f.forecast_efficiency_pct * 6), // Simplified scaling for demo
+          weather: weatherLabel
+        } as any;
+      });
+    }
+
+    if (!panel.cleaned) return adaptedPanel;
 
     return {
-      ...panel,
+      ...adaptedPanel,
       timeline: buildCleanedTimeline(panel.timeline),
-      forecast: buildCleanedForecast(panel.forecast),
+      forecast: buildCleanedForecast(adaptedPanel.forecast),
     };
-  }, [panels, selectedId]);
+  }, [panels, selectedId, forecasts, weather, source]);
 
   const totals = useMemo(() => getTotals(panels), [panels]);
   const dirtyCount = panels.filter((panel) => panel.classifier.type === "Dust" && panel.efficiency < 91).length;
@@ -121,6 +235,17 @@ export default function Dashboard() {
   };
 
   const page = (() => {
+    if (loading) {
+      return (
+        <div className="flex h-64 items-center justify-center">
+          <div className="text-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent mx-auto"></div>
+            <p className="mt-4 text-sm font-medium text-slate-600">Loading SolarGuard data...</p>
+          </div>
+        </div>
+      );
+    }
+
     switch (activePage) {
       case "business-roi":
         return (
@@ -132,12 +257,13 @@ export default function Dashboard() {
             hormuzShock={hormuzShock}
             market={market}
             effectiveTariff={effectiveTariff}
-            roi={roi}
+            roi={roi as any}
             onFarmMwChange={setFarmMw}
             onMarketKeyChange={setMarketKey}
             onTariffChange={setTariff}
             onSystemCostChange={setSystemCost}
             onHormuzShockChange={setHormuzShock}
+            dataSource={source}
           />
         );
       case "panel-management":
@@ -156,6 +282,12 @@ export default function Dashboard() {
             onSelect={(id) => setSelectedId(id as PanelId)}
             onClean={cleanPanel}
             onCleanAll={cleanAllDirtyPanels}
+            dataSource={source}
+            lastUpdated={lastUpdated}
+            onRefresh={refresh}
+            refreshing={refreshing}
+            error={error}
+            onClassify={() => classifyArray(selectedId)}
           />
         );
     }
@@ -171,13 +303,31 @@ export default function Dashboard() {
       onNavigate={setActivePage}
       onOpenSidebar={() => setSidebarOpen(true)}
       onCloseSidebar={() => setSidebarOpen(false)}
+      dataSource={source}
     >
-      <PageHeader
-        title={meta.title}
-        eyebrow={meta.eyebrow}
-        description={meta.description}
-      />
-      <div className="mt-6">{page}</div>
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+        <PageHeader
+          title={meta.title}
+          eyebrow={meta.eyebrow}
+          description={meta.description}
+        />
+        {source !== "mock" && (
+          <div className="flex flex-col items-end gap-2 pt-1">
+            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
+              <span className={`h-2.5 w-2.5 rounded-full ${source === "backend" ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                {source === "backend" ? "Backend Live" : "Demo Fallback"}
+              </span>
+            </div>
+            {lastUpdated && (
+              <p className="text-[10px] font-medium text-slate-400">
+                Last sync: {lastUpdated.toLocaleTimeString()}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="mt-8">{page}</div>
     </DashboardShell>
   );
 }
