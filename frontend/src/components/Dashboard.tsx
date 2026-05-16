@@ -224,25 +224,14 @@ export default function Dashboard() {
     let adaptedPanel = { ...panel };
 
     if (source === "backend" && backendForecast) {
-      adaptedPanel.forecast = backendForecast.map((f, i) => {
-        // Find matching weather if available
-        const w = backendWeather?.[i];
-        let weatherLabel = "Forecast";
-        if (w) {
-          if (w.rainfall_mm > 0.5) weatherLabel = "Rain";
-          else if (w.cloud_cover_pct > 60) weatherLabel = "Cloudy";
-          else weatherLabel = "Clear";
-        }
-
-        return {
-          day: f.date,
-          expected: Math.round(f.upper_bound),
-          forecast: Math.round(f.forecast_efficiency_pct),
-          lowerBound: f.lower_bound,
-          upperBound: f.upper_bound,
-          revenue: f.forecast_revenue_rm,
-          weather: weatherLabel
-        } as any;
+      const BACKEND_LSS_TARIFF = 0.39; // matches services/forecaster.py LSS_TARIFF_RM
+      adaptedPanel.forecast = backendForecast.map((f) => {
+        const forecastKwh = Math.round(f.forecast_revenue_rm / BACKEND_LSS_TARIFF);
+        const upperKwh =
+          f.forecast_efficiency_pct > 0
+            ? Math.round((f.upper_bound / f.forecast_efficiency_pct) * forecastKwh)
+            : forecastKwh;
+        return { day: f.date, expected: upperKwh, forecast: forecastKwh };
       });
     }
 
