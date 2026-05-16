@@ -66,7 +66,23 @@ security/error helpers and `scripts/` operational checks.
 
 ## Quick start
 
-### Frontend
+### Run locally (two terminals)
+
+Start the backend first in Terminal A:
+
+```bash
+cd backend
+python -m venv venv
+# Windows: .\venv\Scripts\activate
+# macOS/Linux: source venv/bin/activate
+pip install -r requirements.txt
+# Set a development API key for local auth (PowerShell / POSIX examples)
+# Windows PowerShell: $env:SOLARGUARD_API_KEYS="dev-local-key"
+# macOS/Linux: export SOLARGUARD_API_KEYS=dev-local-key
+uvicorn main:app --reload
+```
+
+Then start the frontend in Terminal B:
 
 ```bash
 cd frontend
@@ -75,21 +91,11 @@ npm run dev
 # -> http://localhost:5173
 ```
 
-### Backend
+Notes:
+- The frontend expects the backend at `http://localhost:8000` by default; set `VITE_API_BASE_URL` in `frontend/.env` if different.
+- Protected backend endpoints require a bearer token; for local development use `dev-local-key` unless you have configured a different key.
+- For macOS/Linux shells, use `cp .env.example .env` in each folder if you prefer an `.env` file instead of exported variables.
 
-```bash
-cd backend
-python -m venv venv
-# Windows: .\venv\Scripts\activate
-# macOS/Linux: source venv/bin/activate
-pip install -r requirements.txt
-# Windows PowerShell: $env:SOLARGUARD_API_KEYS="dev-local-key"
-# macOS/Linux: export SOLARGUARD_API_KEYS=dev-local-key
-uvicorn main:app --reload
-# -> http://localhost:8000
-# Protected endpoints require: Authorization: Bearer dev-local-key
-# Optional docs: set ENABLE_API_DOCS=true, then open /docs with the same auth header
-```
 
 ### Generate dataset
 
