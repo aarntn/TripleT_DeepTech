@@ -92,7 +92,7 @@ export default function Dashboard() {
     label: source === "backend" ? "Farm A live monitoring" : "Farm A (Demo Fallback)",
     summary:
       source === "backend" 
-        ? "Connected to SolarGuard API. Real-time sensor and weather telemetry driving classification."
+        ? "Connected to Solare API. Real-time sensor and weather telemetry driving classification."
         : "Weather forecast input is treated as an automatic signal. Current forecast shows stable irradiance, so persistent output drops are prioritized as likely soiling unless a weather event explains them.",
   };
   
@@ -232,7 +232,7 @@ export default function Dashboard() {
         <div className="flex h-64 items-center justify-center">
           <div className="text-center">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent mx-auto"></div>
-            <p className="mt-4 text-sm font-medium text-slate-600">Loading SolarGuard data...</p>
+            <p className="mt-4 text-sm font-medium text-slate-600">Loading Solare data...</p>
           </div>
         </div>
       );
@@ -277,7 +277,7 @@ export default function Dashboard() {
         );
       case "overview":
       default:
-        return <OverviewPage totals={totals} panels={panels} />;
+        return <OverviewPage totals={totals} panels={panels} sensorTick={sensorTick} />;
     }
   })();
 

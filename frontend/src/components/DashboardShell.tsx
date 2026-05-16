@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { Sidebar, type NavItem, type PageId } from "./Sidebar";
 import { DataSource } from "../hooks/useSolarGuardData";
+import solareLogo from "../assets/solare-logo.svg";
 
 type DashboardShellProps = {
   activePage: PageId;
@@ -46,7 +47,10 @@ export function DashboardShell({
             >
               Menu
             </button>
-            <p className="text-sm font-semibold text-slate-950">SolarDust AI</p>
+            <div className="flex items-center gap-2">
+              <img src={solareLogo} alt="" className="size-6 rounded-md" />
+              <p className="text-sm font-semibold text-slate-950">Solare</p>
+            </div>
             <span className="h-9 w-16" />
           </div>
         )}
