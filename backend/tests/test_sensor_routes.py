@@ -93,6 +93,14 @@ def test_get_latest_reading_has_required_fields():
         assert field in row
 
 
+def test_get_history_returns_demo_sensor_rows():
+    response = client.get("/api/sensor/history", headers=AUTH_HEADERS)
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) > 6
+    assert {row["array_id"] for row in data} == {"A1", "A2", "B1", "B2", "C1", "C2"}
+
+
 def test_forecast_a1_returns_three_points():
     response = client.get("/api/forecast/A1", headers=AUTH_HEADERS)
     assert response.status_code == 200

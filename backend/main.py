@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
@@ -21,12 +22,35 @@ from api.routes import efficiency, market, roi, weather
 from api.routes.sensor import forecast_router, sensor_router
 
 
+def load_local_env() -> None:
+    """Load repo .env values for local runs without overriding real env vars."""
+    import os
+
+    if os.getenv("APP_ENV", "").strip().lower() == "test" or os.getenv("PYTEST_CURRENT_TEST"):
+        return
+
+    env_path = Path(__file__).parents[1] / ".env"
+    if not env_path.exists():
+        return
+
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key:
+            os.environ.setdefault(key, value)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
 
 
 def create_app() -> FastAPI:
+    load_local_env()
     enable_docs = env_bool("ENABLE_API_DOCS", False)
     security_config = SecurityConfig.from_env()
     from services.dust_classifier import validate_model_config

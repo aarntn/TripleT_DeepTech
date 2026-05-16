@@ -54,6 +54,19 @@ def get_latest() -> list[SensorReading]:
         raise HTTPException(status_code=500, detail="Sensor data read error.") from exc
 
 
+@sensor_router.get("/history", response_model=list[SensorReading])
+def get_history() -> list[SensorReading]:
+    csv_path = DATA_DIR / "scenario_dusty_week.csv"
+    if not csv_path.exists():
+        raise HTTPException(status_code=503, detail="Sensor history unavailable.")
+    try:
+        df = pd.read_csv(csv_path).sort_values(["array_id", "timestamp"])
+        return [SensorReading(**row) for row in df.to_dict(orient="records")]
+    except Exception as exc:
+        logger.exception("Failed to read sensor history: %s", exc)
+        raise HTTPException(status_code=500, detail="Sensor history read error.") from exc
+
+
 @forecast_router.get("/{array_id}", response_model=list[ForecastPoint])
 def get_forecast(
     array_id: str = PathParam(..., min_length=2, max_length=2, pattern=r"^[A-Z][0-9]$")
