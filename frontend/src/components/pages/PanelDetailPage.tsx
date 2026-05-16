@@ -109,7 +109,7 @@ export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPagePr
     },
     {
       severity: "info",
-      title: "Weather forecast updated automatically",
+      title: weatherRows.length === 0 ? "Weather source unavailable" : "Weather source: demo CSV",
       time: "12:00",
     },
   ] as const;
