@@ -71,6 +71,7 @@ security/error helpers and `scripts/` operational checks.
 ```bash
 cd frontend
 npm install
+cp .env.example .env
 npm run dev
 # -> http://localhost:5173
 ```
@@ -118,6 +119,9 @@ generated weather CSV before falling back to `forecast_input.csv`. Set
 live from the backend. Keep weather API keys backend-only.
 NASA POWER hourly irradiance is normalized from Wh/m2 to kWh/m2 in the output.
 
+The dashboard labels checked-in CSV sensor rows as demo data. Do not describe
+those rows as real live telemetry unless a real ingestion source is added.
+
 ### Optional research notebooks
 
 The notebook is for EDA/model-development traceability only. It is not required
@@ -161,8 +165,6 @@ Copy `.env.example` to `.env` and fill in values before running the backend.
 
 ```env
 CARBON_PRICE_RM=40
-DEFAULT_TARIFF_MY=0.35
-DEFAULT_TARIFF_GCC=0.42
 APP_ENV=development
 SOLARGUARD_API_KEYS=dev-local-key
 # SOLARGUARD_API_KEY_SHA256S=
@@ -184,6 +186,14 @@ WEATHER_LAT=3.139
 WEATHER_LON=101.6869
 WEATHER_PROCESSED_PATH=data/processed/weather/forecast_weather.csv
 # OPENWEATHER_API_KEY=
+```
+
+Frontend development variables live in `frontend/.env`:
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000
+VITE_SOLARGUARD_API_KEY=dev-local-key
+VITE_USE_MOCKS=false
 ```
 
 For production, set `APP_ENV=production`, use `SOLARGUARD_API_KEY_SHA256S`
