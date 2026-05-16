@@ -1,0 +1,13 @@
+location,farm_mw,month,eff_with_cleaning_pct,eff_without_cleaning_pct,efficiency_recovered_pct,kwh_recovered,rm_recovered,carbon_tonnes_avoided,carbon_value_rm
+malaysia,5,Jan,97,98,-1,-6844,-2395,-4.004,-160
+malaysia,5,Feb,94,95.5,-1.5,-10266,-3593,-6.005,-240
+malaysia,5,Mar,97,93,4,27375,9581,16.014,641
+malaysia,5,Apr,94,90.5,3.5,23953,8384,14.013,561
+malaysia,5,May,97,88,9,61594,21558,36.032,1441
+malaysia,5,Jun,94,85.5,8.5,58172,20360,34.031,1361
+malaysia,5,Jul,97,83,14,95812,33534,56.05,2242
+malaysia,5,Aug,94,80.5,13.5,92391,32337,54.049,2162
+malaysia,5,Sep,97,78,19,130031,45511,76.068,3043
+malaysia,5,Oct,94,75.5,18.5,126609,44313,74.066,2963
+malaysia,5,Nov,97,73,24,164250,57487,96.086,3843
+malaysia,5,Dec,94,70.5,23.5,160828,56290,94.084,3763
