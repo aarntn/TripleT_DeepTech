@@ -74,7 +74,7 @@ export function ROICalculator({
         <span className={`rounded-full px-3 py-1 text-sm font-bold shadow-sm ${
           isBackend ? "bg-emerald-50 text-emerald-700" : "bg-indigo-50 text-indigo-700"
         }`}>
-          {isBackend ? "Backend Live" : "Frontend mock"}
+          {isBackend ? "Backend model" : "Frontend mock"}
         </span>
       </div>
 
@@ -139,7 +139,7 @@ export function ROICalculator({
           </div>
           {isBackend ? (
             <p className="mt-4 text-xs font-medium text-slate-500 italic">
-              * Automatically calculated by backend based on farm capacity (MW).
+              * Calculated by backend ROI profile based on farm capacity (MW).
             </p>
           ) : (
             <input

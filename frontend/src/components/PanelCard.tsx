@@ -85,7 +85,7 @@ export function PanelCard({ panel, selected, cleaning, onSelect, onClean }: Pane
           }}
           className="mt-4 w-full rounded-md bg-slate-950 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
         >
-          {cleaning ? "Creating work order..." : "Create work order"}
+          {cleaning ? "Simulating work order..." : "Simulate work order"}
         </button>
       )}
     </article>

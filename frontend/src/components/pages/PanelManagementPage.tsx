@@ -43,16 +43,17 @@ const getPanelTelemetry = (panel: RuntimePanel) => {
     expected: PANEL_RATED_KW,
     irradiance: 5.1,
   };
-  const currentOutput = (panel.efficiency / 100) * PANEL_RATED_KW;
+  const sensor = panel.backendSensor;
+  const currentOutput = sensor ? sensor.actual_output_kwh : (panel.efficiency / 100) * PANEL_RATED_KW;
   const voltage = Math.round(615 + panel.efficiency * 0.75 + panel.id.charCodeAt(1) * 2);
   const current = Math.round((currentOutput * 1000) / Math.max(voltage, 1));
-  const irradiance = Math.round(latest.irradiance * 185);
-  const panelTemperature = Math.round(39 + (irradiance - 850) / 55 + (100 - panel.efficiency) * 0.08);
-  const ambientTemperature = Math.max(28, panelTemperature - 9);
+  const irradiance = sensor ? Math.round(sensor.irradiance_kwh_m2 * 1000) : Math.round(latest.irradiance * 185);
+  const panelTemperature = sensor ? Math.round(sensor.temp_c) : Math.round(39 + (irradiance - 850) / 55 + (100 - panel.efficiency) * 0.08);
+  const ambientTemperature = sensor ? Math.round(sensor.temp_c) : Math.max(28, panelTemperature - 9);
   const windSpeed = panel.classifier.type === "Weather" ? 12 : panel.classifier.type === "Dust" ? 5 : 7;
   const peakPower = Math.min(PANEL_RATED_KW, currentOutput * 1.08);
   const performanceRatio = Math.max(0.45, Math.min(0.98, panel.efficiency / 100 - 0.04));
-  const todayEnergy = Math.round(latest.actual);
+  const todayEnergy = Math.round(sensor?.actual_output_kwh ?? latest.actual);
   const monthEnergy = Math.round(todayEnergy * 19.3);
   const yearEnergy = Math.round(todayEnergy * 142);
   const lifetimeEnergy = Math.round(todayEnergy * 710);
@@ -60,6 +61,9 @@ const getPanelTelemetry = (panel: RuntimePanel) => {
   const estimatedSavings = Math.round(todayEnergy * 0.42);
   const batteryLevel = Math.max(30, Math.min(96, Math.round(panel.efficiency - 6)));
   const gridExport = Math.max(0, currentOutput - 11.8);
+  const humidity = sensor?.humidity_pct;
+  const cloudCover = sensor?.cloud_cover_pct;
+  const rainfall = sensor?.rainfall_mm;
 
   return {
     ambientTemperature,
@@ -69,6 +73,7 @@ const getPanelTelemetry = (panel: RuntimePanel) => {
     currentOutput,
     estimatedSavings,
     gridExport,
+    humidity,
     irradiance,
     lifetimeEnergy,
     monthEnergy,
@@ -79,6 +84,8 @@ const getPanelTelemetry = (panel: RuntimePanel) => {
     voltage,
     windSpeed,
     yearEnergy,
+    cloudCover,
+    rainfall,
   };
 };
 
@@ -86,6 +93,8 @@ type PanelManagementPageProps = {
   panels: RuntimePanel[];
   cleaningIds: Set<string>;
   scenarioId: ScenarioId;
+  selectedId: string;
+  onPanelSelected: (id: string) => void;
   onClean: (id: string) => void;
 };
 
@@ -206,10 +215,11 @@ function BatteryProgressStrip({ panel }: { panel: RuntimePanel }) {
 
 function DetailMetricsGrid({ panel }: { panel: RuntimePanel }) {
   const telemetry = getPanelTelemetry(panel);
+  const outputUnit = panel.backendSensor ? "kWh" : "kW";
 
   return (
     <div className="grid grid-cols-2 gap-3">
-      <DetailMetricCard label="Current Output" value={telemetry.currentOutput.toFixed(1)} unit="kW" hint="Live estimated block output" tone="blue" />
+      <DetailMetricCard label="Latest Output" value={telemetry.currentOutput.toFixed(1)} unit={outputUnit} hint={panel.backendSensor ? "Backend demo sensor row" : "Estimated block output"} tone="blue" />
       <DetailMetricCard label="Electrical Load" value={`${telemetry.voltage} V`} hint={`${telemetry.current} A current draw`} tone="neutral" />
       <DetailMetricCard label="Panel Temp" value={telemetry.panelTemperature} unit="°C" hint={`${telemetry.ambientTemperature} °C ambient`} tone={telemetry.panelTemperature > 48 ? "warning" : "neutral"} />
       <DetailMetricCard label="Efficiency" value={panel.efficiency} unit="%" hint="Compared with expected output" tone={panel.efficiency > 90 ? "success" : "warning"} />
@@ -253,7 +263,15 @@ function PanelOperationsSummary({ panel }: { panel: RuntimePanel }) {
   const status = getOperationalStatus(panel);
   const inverterStatus = status === "Active" ? "Online" : status === "Fault" ? "Derated" : "Offline";
   const gridFlowTone = telemetry.gridExport > 0 ? "success" : "warning";
-  const weather = panel.classifier.type === "Weather" ? "Cloud band" : "Sunny";
+  const weatherRows = panel.weatherRows ?? [];
+  const weather =
+    weatherRows.length === 0
+      ? "Weather unavailable"
+      : (telemetry.rainfall ?? 0) > 0
+        ? "Rain"
+        : (telemetry.cloudCover ?? 0) > 60
+          ? "Cloudy"
+          : "Clear";
   const maintenanceDue = getPriorityLabel(panel) === "High" ? "Due now" : isPanelDirty(panel) ? "This week" : "14 days";
   const latestAlert =
     status === "Active"
@@ -261,6 +279,7 @@ function PanelOperationsSummary({ panel }: { panel: RuntimePanel }) {
       : panel.classifier.type === "Dust"
         ? "Output drop despite stable irradiance"
         : "Weather-adjusted output dip";
+  const classifierSummary = `${panel.classifier.type} (${Math.round(panel.classifier.confidence)}%)`;
 
   return (
     <div className="space-y-3">
@@ -282,7 +301,7 @@ function PanelOperationsSummary({ panel }: { panel: RuntimePanel }) {
             { label: "Irradiance", value: `${telemetry.irradiance} W/m²` },
             { label: "Weather", value: weather },
             { label: "Air temp", value: `${telemetry.ambientTemperature} °C` },
-            { label: "Wind speed", value: `${telemetry.windSpeed} km/h` },
+            { label: "Humidity", value: telemetry.humidity === undefined ? "Unavailable" : `${Math.round(telemetry.humidity)}%` },
           ]}
         />
       </DetailSection>
@@ -302,6 +321,8 @@ function PanelOperationsSummary({ panel }: { panel: RuntimePanel }) {
         <KeyValueGrid
           items={[
             { label: "Latest alert", value: latestAlert, tone: status === "Active" ? "success" : "warning" },
+            { label: "Classifier", value: classifierSummary, tone: panel.classifier.type === "Dust" ? "warning" : panel.classifier.type === "Weather" ? "default" : "success" },
+            { label: "Cause", value: panel.classifier.cause },
             { label: "Maintenance", value: maintenanceDue, tone: maintenanceDue === "Due now" ? "danger" : "default" },
             { label: "Module", value: PANEL_SPECS.module },
             { label: "Capacity", value: PANEL_SPECS.capacity },
@@ -315,7 +336,7 @@ function PanelOperationsSummary({ panel }: { panel: RuntimePanel }) {
   );
 }
 
-export function PanelManagementPage({ panels, cleaningIds, scenarioId, onClean }: PanelManagementPageProps) {
+export function PanelManagementPage({ panels, cleaningIds, scenarioId, selectedId, onPanelSelected, onClean }: PanelManagementPageProps) {
   const [detailPanelId, setDetailPanelId] = useState<string | null>(null);
 
   const detailPanel = detailPanelId ? (panels.find((p) => p.id === detailPanelId) ?? null) : null;
@@ -326,6 +347,10 @@ export function PanelManagementPage({ panels, cleaningIds, scenarioId, onClean }
   const needClean = panels.filter(isPanelDirty).length;
 
   const metricsProps = { totalOutputKw, avgSufficiency, activeCount, totalCount: panels.length, needClean };
+  const selectPanel = (id: string) => {
+    setDetailPanelId(id);
+    onPanelSelected(id);
+  };
 
   return (
     <div className="flex h-full min-h-0 overflow-hidden">
@@ -366,7 +391,7 @@ export function PanelManagementPage({ panels, cleaningIds, scenarioId, onClean }
                 disabled={cleaningIds.has(detailPanel.id)}
                 className="w-full rounded-xl bg-[#17b26a] py-2.5 text-sm font-semibold text-white transition hover:bg-[#0ea05f] disabled:cursor-not-allowed disabled:bg-[#6ee7b7]"
               >
-                {cleaningIds.has(detailPanel.id) ? "Creating work order..." : "Create Cleaning Work Order"}
+                {cleaningIds.has(detailPanel.id) ? "Simulating work order..." : "Simulate Cleaning Work Order"}
               </button>
             )}
 
@@ -414,7 +439,7 @@ export function PanelManagementPage({ panels, cleaningIds, scenarioId, onClean }
                   <button
                     key={panel.id}
                     type="button"
-                    onClick={() => setDetailPanelId(panel.id)}
+                    onClick={() => selectPanel(panel.id)}
                     className="-mx-1 grid w-[calc(100%+8px)] cursor-pointer grid-cols-[52px_minmax(108px,1fr)_92px_124px] gap-3 rounded-lg border-b border-[#e9eaeb] px-1 py-3 text-left last:border-0 hover:bg-[#fafafa]"
                   >
                     <p className="text-sm text-[#181d27]">{panel.id}</p>
@@ -440,7 +465,7 @@ export function PanelManagementPage({ panels, cleaningIds, scenarioId, onClean }
 
       {/* Map */}
       <div className="min-h-0 min-w-0 flex-1">
-        <FarmOperationsMap panels={panels} selectedId={detailPanelId} onSelect={setDetailPanelId} />
+        <FarmOperationsMap panels={panels} selectedId={detailPanelId ?? selectedId} onSelect={selectPanel} />
       </div>
     </div>
   );

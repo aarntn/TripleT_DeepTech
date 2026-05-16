@@ -32,7 +32,7 @@ export function PanelHeatmap({
             <h2 className="text-lg font-semibold text-slate-950">Panel block efficiency heatmap</h2>
             <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
               <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-              Live sensor feed
+              Demo sensor feed
             </span>
           </div>
           <p className="mt-1 text-sm text-slate-500">
@@ -46,7 +46,7 @@ export function PanelHeatmap({
           disabled={dirtyCount === 0}
           className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          Create cleaning work orders
+          Simulate cleaning work orders
         </button>
       </div>
 

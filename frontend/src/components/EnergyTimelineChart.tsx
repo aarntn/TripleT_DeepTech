@@ -22,7 +22,9 @@ export function EnergyTimelineChart({ panel, scenario }: EnergyTimelineChartProp
   const data = panel.timeline;
 
   const labelDay = scenario === "rainy" ? "Tue" : "Thu";
-  const labelText = scenario === "rainy" ? "Rainy Tuesday / weather event" : "Soiling drop on Thursday";
+  const labelText = panel.dataSource === "backend-demo"
+    ? "Backend demo CSV signal"
+    : scenario === "rainy" ? "Rainy Tuesday / weather event" : "Soiling drop on Thursday";
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -40,7 +42,7 @@ export function EnergyTimelineChart({ panel, scenario }: EnergyTimelineChartProp
             <XAxis dataKey="day" tick={{ fontSize: 12, fill: "#64748b" }} />
             <YAxis
               tick={{ fontSize: 12, fill: "#64748b" }}
-              domain={[280, 660]}
+              domain={["dataMin - 100", "dataMax + 100"]}
               tickFormatter={(value) => `${value}`}
               label={{ value: "kWh", angle: -90, position: "insideLeft", fill: "#64748b", fontSize: 12 }}
             />

@@ -43,11 +43,21 @@ const alertStyles = {
 
 export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPageProps) {
   const sample = sensorSamples[sensorTick % sensorSamples.length];
+  const sensor = panel.backendSensor;
+  const sensorHistory = panel.sensorHistory ?? [];
   const status = panel.efficiency < 20 ? "Offline" : panel.efficiency < 55 ? "Fault" : "Active";
-  const currentPower = Math.max(0, Math.round(panel.efficiency * 6.8));
+  const currentPower = Math.max(0, Math.round(sensor?.actual_output_kwh ?? panel.efficiency * 6.8));
   const todayEnergy = Math.round(panel.timeline[panel.timeline.length - 1]?.actual ?? 0);
-  const ambientTemperature = sample.panelTemp - 9;
-  const weatherCondition = sample.irradiance > 5 ? "Sunny" : "Partly cloudy";
+  const ambientTemperature = Math.round(sensor?.temp_c ?? sample.panelTemp - 9);
+  const weatherRows = panel.weatherRows ?? [];
+  const weatherCondition =
+    weatherRows.length === 0
+      ? "Weather unavailable"
+      : (sensor?.rainfall_mm ?? 0) > 0
+        ? "Rain"
+        : (sensor?.cloud_cover_pct ?? 0) > 60
+          ? "Cloudy"
+          : "Clear";
   const batteryLevel = Math.max(34, Math.min(96, Math.round(panel.efficiency - 8)));
   const performanceRatio = Math.max(0.54, Math.min(0.96, panel.efficiency / 100 - 0.03));
   const co2Offset = Math.round(todayEnergy * 0.000585 * 1000);
@@ -55,16 +65,31 @@ export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPagePr
   const statusLabel = getPanelStatus(panel.efficiency);
   const performanceLabel =
     statusLabel === "Clean" ? "Normal" : statusLabel === "Dust suspected" ? "Soiling suspected" : "High loss";
+  const lastUpdated = sensor
+    ? new Date(sensor.timestamp).toLocaleString("en-MY", { dateStyle: "medium", timeStyle: "short" })
+    : "Demo sensor sample";
+  const outputUnit = sensor ? "kWh" : "kW";
+  const irradianceWatts = Math.round((sensor?.irradiance_kwh_m2 ?? sample.irradiance) * (sensor ? 1000 : 185));
+  const latestHistoryDate = sensor?.timestamp.slice(0, 10);
+  const latestHistoryRows = latestHistoryDate
+    ? sensorHistory.filter((row) => row.timestamp.startsWith(latestHistoryDate))
+    : [];
 
-  const hourlyData = [
-    { hour: "06:00", actual: 8, expected: 10 },
-    { hour: "08:00", actual: Math.round(currentPower * 0.24), expected: Math.round(currentPower * 0.32) },
-    { hour: "10:00", actual: Math.round(currentPower * 0.62), expected: Math.round(currentPower * 0.78) },
-    { hour: "12:00", actual: Math.round(currentPower * 0.88), expected: Math.round(currentPower * 1.04) },
-    { hour: "14:00", actual: currentPower, expected: Math.round(currentPower * 1.12) },
-    { hour: "16:00", actual: Math.round(currentPower * 0.64), expected: Math.round(currentPower * 0.82) },
-    { hour: "18:00", actual: Math.round(currentPower * 0.18), expected: Math.round(currentPower * 0.24) },
-  ];
+  const hourlyData = latestHistoryRows.length
+    ? latestHistoryRows.map((row) => ({
+        hour: new Date(row.timestamp).toLocaleTimeString("en-MY", { hour: "2-digit", minute: "2-digit" }),
+        actual: Math.round(row.actual_output_kwh),
+        expected: Math.round(row.expected_output_kwh),
+      }))
+    : [
+        { hour: "06:00", actual: 8, expected: 10 },
+        { hour: "08:00", actual: Math.round(currentPower * 0.24), expected: Math.round(currentPower * 0.32) },
+        { hour: "10:00", actual: Math.round(currentPower * 0.62), expected: Math.round(currentPower * 0.78) },
+        { hour: "12:00", actual: Math.round(currentPower * 0.88), expected: Math.round(currentPower * 1.04) },
+        { hour: "14:00", actual: currentPower, expected: Math.round(currentPower * 1.12) },
+        { hour: "16:00", actual: Math.round(currentPower * 0.64), expected: Math.round(currentPower * 0.82) },
+        { hour: "18:00", actual: Math.round(currentPower * 0.18), expected: Math.round(currentPower * 0.24) },
+      ];
 
   const monthlyComparison = [
     { month: "Last month", energy: Math.round(todayEnergy * 27.4) },
@@ -117,7 +142,7 @@ export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPagePr
             </div>
             <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-right">
               <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Last updated</p>
-              <p className="mt-1 text-lg font-semibold text-slate-950">15 May 2026, 13:15 MYT</p>
+              <p className="mt-1 text-lg font-semibold text-slate-950">{lastUpdated}</p>
               <p className="mt-1 text-sm font-semibold text-emerald-700">{performanceLabel}</p>
             </div>
           </div>
@@ -126,9 +151,9 @@ export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPagePr
 
       <section className="grid gap-4 lg:grid-cols-4">
         {[
-          ["Current Output", `${currentPower.toLocaleString("en-MY")} kW`, "Live AC output", "from-emerald-400/20 to-lime-300/20"],
+          ["Latest Output", `${currentPower.toLocaleString("en-MY")} ${outputUnit}`, sensor ? "Backend demo sensor row" : "Estimated AC output", "from-emerald-400/20 to-lime-300/20"],
           ["Today's Energy", `${todayEnergy.toLocaleString("en-MY")} kWh`, "Generated since sunrise", "from-yellow-300/25 to-emerald-300/15"],
-          ["Panel Temperature", `${sample.panelTemp}°C`, "Module surface", "from-orange-300/25 to-yellow-300/15"],
+          ["Panel Temperature", `${Math.round(sensor?.temp_c ?? sample.panelTemp)}°C`, "Module surface", "from-orange-300/25 to-yellow-300/15"],
           ["Efficiency", `${panel.efficiency}%`, "Compared with expected output", "from-lime-300/25 to-emerald-400/15"],
         ].map(([label, value, helper, gradient]) => (
           <article key={label} className={`rounded-2xl border border-white bg-gradient-to-br ${gradient} p-5 shadow-sm ring-1 ring-slate-200/70`}>
@@ -193,7 +218,7 @@ export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPagePr
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-yellow-50 p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-yellow-700">Irradiance</p>
-                <p className="mt-1 text-2xl font-semibold text-slate-950">{Math.round(sample.irradiance * 185)} W/m²</p>
+                <p className="mt-1 text-2xl font-semibold text-slate-950">{irradianceWatts} W/m²</p>
               </div>
               <div className="rounded-xl bg-orange-50 p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">Ambient temp</p>
@@ -202,7 +227,7 @@ export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPagePr
             </div>
             <div className="mt-3 rounded-xl bg-sky-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Weather condition</p>
-              <p className="mt-1 text-2xl font-semibold text-slate-950">{weatherCondition === "Sunny" ? "☀" : "◐"} {weatherCondition}</p>
+              <p className="mt-1 text-2xl font-semibold text-slate-950">{weatherCondition}</p>
             </div>
           </section>
 
@@ -267,6 +292,17 @@ export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPagePr
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Alerts</p>
             <div className="mt-4 space-y-3">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide">classifier</p>
+                    <p className="mt-1 font-semibold">
+                      {panel.classifier.type} signal, {Math.round(panel.classifier.confidence)}% confidence
+                    </p>
+                    <p className="mt-1 text-sm">{panel.classifier.cause}</p>
+                  </div>
+                </div>
+              </div>
               {alerts.map((alert) => (
                 <div key={`${alert.title}-${alert.time}`} className={`rounded-xl border px-4 py-3 ${alertStyles[alert.severity]}`}>
                   <div className="flex items-start justify-between gap-3">

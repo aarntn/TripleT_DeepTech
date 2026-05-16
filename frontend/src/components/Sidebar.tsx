@@ -13,10 +13,10 @@ type SidebarProps = {
   open: boolean;
   onNavigate: (page: PageId) => void;
   onClose: () => void;
-  dataSource?: "backend" | "mock" | "fallback";
+  dataSource?: "backend" | "mock" | "fallback" | "error";
 };
 
-export function Sidebar({ navItems, activePage, open, onNavigate, onClose }: SidebarProps) {
+export function Sidebar({ navItems, activePage, open, onNavigate, onClose, dataSource = "mock" }: SidebarProps) {
   const groupedItems = navItems.reduce<Record<NavItem["section"], NavItem[]>>(
     (groups, item) => {
       groups[item.section].push(item);
@@ -48,6 +48,15 @@ export function Sidebar({ navItems, activePage, open, onNavigate, onClose }: Sid
       </svg>
     );
   };
+  const dataSourceLabel =
+    dataSource === "backend"
+      ? "Backend demo CSV"
+      : dataSource === "fallback"
+        ? "Fallback mock"
+        : dataSource === "error"
+          ? "Backend error"
+          : "Mock demo";
+
   const content = (
     <aside className="flex h-full w-[280px] flex-col bg-[#fafafa] p-0 text-[#181d27] shadow-xl lg:shadow-none">
       <div className="m-0 flex h-full flex-col justify-between rounded-xl border border-[#e9eaeb] bg-white shadow-[0_1px_2px_rgba(10,13,18,0.05)]">
@@ -98,7 +107,12 @@ export function Sidebar({ navItems, activePage, open, onNavigate, onClose }: Sid
         </nav>
       </div>
 
-      <div className="h-20" />
+      <div className="p-5">
+        <div className="rounded-xl border border-[#e9eaeb] bg-[#fafafa] px-3 py-2">
+          <p className="text-xs font-semibold uppercase tracking-normal text-[#717680]">Data source</p>
+          <p className="mt-1 text-sm font-semibold text-[#181d27]">{dataSourceLabel}</p>
+        </div>
+      </div>
       </div>
     </aside>
   );

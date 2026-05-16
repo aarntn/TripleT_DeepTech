@@ -65,7 +65,7 @@ export function ArrayPriorityQueue({
           disabled={dirtyCount === 0}
           className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          Create all cleaning work orders
+          Simulate all cleaning work orders
         </button>
       </div>
 
@@ -115,7 +115,7 @@ export function ArrayPriorityQueue({
                         }}
                         className="rounded-md bg-slate-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
                       >
-                        {cleaningIds.has(panel.id) ? "Creating..." : "Create work order"}
+                        {cleaningIds.has(panel.id) ? "Simulating..." : "Simulate work order"}
                       </button>
                     ) : panel.classifier.type === "Weather" ? (
                       <span className="font-semibold text-sky-700">Defer: weather-related</span>

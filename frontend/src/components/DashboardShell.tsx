@@ -13,7 +13,69 @@ type DashboardShellProps = {
   onOpenSidebar: () => void;
   onCloseSidebar: () => void;
   dataSource: DataSource;
+  status?: {
+    source: DataSource;
+    error: string | null;
+    lastUpdated: Date | null;
+    refreshing: boolean;
+    staleBackendData: boolean;
+    latestSensorTimestamp?: string;
+    weatherUnavailable: boolean;
+    onRefresh: () => void;
+  };
 };
+
+function DataStatusBanner({ status }: { status: NonNullable<DashboardShellProps["status"]> }) {
+  const tone =
+    status.source === "error"
+      ? "border-rose-200 bg-rose-50 text-rose-800"
+      : status.source === "backend"
+        ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+        : "border-amber-200 bg-amber-50 text-amber-800";
+
+  const label =
+    status.source === "backend"
+      ? status.staleBackendData
+        ? "Backend connected - demo CSV"
+        : "Backend connected"
+      : status.source === "fallback"
+        ? "Fallback mock data"
+        : status.source === "error"
+          ? "Backend error"
+          : "Mock data";
+
+  const timestamp = status.latestSensorTimestamp
+    ? new Date(status.latestSensorTimestamp).toLocaleString("en-MY", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : null;
+
+  return (
+    <div className={`flex flex-col gap-3 rounded-xl border px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between ${tone}`}>
+      <div>
+        <p className="text-sm font-semibold">{label}</p>
+        <p className="mt-1 text-xs font-medium opacity-80">
+          {status.error
+            ? status.error
+            : timestamp
+              ? `Latest sensor row: ${timestamp}${status.weatherUnavailable ? " - weather unavailable" : ""}`
+              : status.weatherUnavailable
+                ? "Weather unavailable"
+                : "Using configured dashboard data source."}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={status.onRefresh}
+        disabled={status.refreshing}
+        className="w-fit rounded-md border border-current/20 bg-white/60 px-3 py-1.5 text-xs font-semibold transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {status.refreshing ? "Refreshing..." : "Refresh"}
+      </button>
+    </div>
+  );
+}
 
 export function DashboardShell({
   activePage,
@@ -25,6 +87,7 @@ export function DashboardShell({
   onOpenSidebar,
   onCloseSidebar,
   dataSource,
+  status,
 }: DashboardShellProps) {
   return (
     <main className={`${fullHeight ? "h-screen overflow-hidden" : "min-h-screen"} bg-[#fafafa] text-[#181d27]`}>
@@ -50,7 +113,14 @@ export function DashboardShell({
             <span className="h-9 w-16" />
           </div>
         )}
-        <div className={fullHeight ? "h-full" : "w-full px-5 py-8 lg:px-8"}>{children}</div>
+        <div className={fullHeight ? "relative h-full" : "w-full px-5 py-8 lg:px-8"}>
+          {status ? (
+            <div className={fullHeight ? "absolute left-4 right-4 top-4 z-20 lg:left-8 lg:right-8" : "mb-5"}>
+              <DataStatusBanner status={status} />
+            </div>
+          ) : null}
+          <div className={fullHeight && status ? "h-full pt-28" : fullHeight ? "h-full" : ""}>{children}</div>
+        </div>
       </div>
     </main>
   );

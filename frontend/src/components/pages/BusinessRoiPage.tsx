@@ -34,7 +34,7 @@ export function BusinessRoiPage(props: BusinessRoiPageProps) {
             </p>
             <p className="mt-1 text-xs text-slate-500">
               Effective tariff: RM {effectiveTariff.toFixed(2)}/kWh.
-              {dataSource === "backend" ? " Real-time backend ROI model." : " Mock assumptions for demo transparency."}
+              {dataSource === "backend" ? " Backend ROI profile model, not live sensor-based." : " Mock assumptions for demo transparency."}
             </p>
           </div>
           <span
@@ -42,7 +42,7 @@ export function BusinessRoiPage(props: BusinessRoiPageProps) {
               dataSource === "backend" ? "bg-emerald-100 text-emerald-700" : "bg-white text-slate-600"
             }`}
           >
-            {dataSource === "backend" ? "Backend Live" : "Frontend-only data"}
+            {dataSource === "backend" ? "Backend model" : "Frontend-only data"}
           </span>
         </div>
         <div className="overflow-x-auto">

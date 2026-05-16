@@ -20,12 +20,6 @@ type OverviewPageProps = {
   panels: RuntimePanel[];
 };
 
-const metrics = [
-  { label: "Site Consumption", value: "140,25", unit: "kWh", icon: "plug" },
-  { label: "Self-Supply Rate", value: "76", unit: "%", icon: "rate" },
-  { label: "Forecast Irradiance", value: "5.2", unit: "kWh/m²", icon: "power" },
-];
-
 const gridEmissionFactorTonnesPerKwh = 0.000585;
 
 const formatDeltaPercent = (actual: number, expected: number) => {
@@ -76,7 +70,9 @@ function OverviewIcon({ type }: { type: string }) {
   );
 }
 
-function MetricItem({ metric }: { metric: (typeof metrics)[number] }) {
+type OverviewMetric = { label: string; value: string; unit: string; icon: string };
+
+function MetricItem({ metric }: { metric: OverviewMetric }) {
   return (
     <article className="overflow-hidden rounded-xl border border-[#e9eaeb] bg-[#fdfdfd] shadow-[0_1px_2px_rgba(10,13,18,0.05)]">
       <div className="flex items-center gap-2.5 px-5 py-3">
@@ -146,6 +142,21 @@ export function OverviewPage({ totals, panels }: OverviewPageProps) {
   const peakProduction = productionData.reduce((peak, point) => Math.max(peak, point.actual), 0);
   const productionGap = latestProduction.actual - latestProduction.expected;
   const co2Avoided = latestProduction.actual * gridEmissionFactorTonnesPerKwh;
+  const latestSensors = panels.flatMap((panel) => panel.backendSensor ? [panel.backendSensor] : []);
+  const avgTemperature = latestSensors.length
+    ? Math.round(latestSensors.reduce((sum, sensor) => sum + sensor.temp_c, 0) / latestSensors.length)
+    : 35;
+  const avgEfficiency = panels.length
+    ? Math.round(panels.reduce((sum, panel) => sum + panel.efficiency, 0) / panels.length)
+    : 0;
+  const avgIrradiance = latestSensors.length
+    ? latestSensors.reduce((sum, sensor) => sum + sensor.irradiance_kwh_m2, 0) / latestSensors.length
+    : 5.2;
+  const metrics: OverviewMetric[] = [
+    { label: "Latest Actual Output", value: Math.round(latestProduction.actual).toLocaleString("en-MY"), unit: "kWh", icon: "plug" },
+    { label: "Average Efficiency", value: String(avgEfficiency), unit: "%", icon: "rate" },
+    { label: "Avg. Sensor Irradiance", value: avgIrradiance.toFixed(1), unit: "kWh/m²", icon: "power" },
+  ];
 
   const chartStats = [
     {
@@ -178,7 +189,7 @@ export function OverviewPage({ totals, panels }: OverviewPageProps) {
     {
       label: "Estimated Loss Today",
       value: formatRM(totals.lostToday),
-      helper: "Live avoidable loss from underperforming panel blocks.",
+      helper: "Avoidable loss from backend demo sensor rows.",
       tone: "loss" as const,
     },
     {
@@ -203,7 +214,7 @@ export function OverviewPage({ totals, panels }: OverviewPageProps) {
           <svg className="size-5 text-[#181d27]" fill="none" viewBox="0 0 20 20">
             <path d="M10 2.5v2m0 11v2m7.5-7.5h-2m-11 0h-2m12.8-5.3-1.42 1.42M6.12 13.88 4.7 15.3m10.6 0-1.42-1.42M6.12 6.12 4.7 4.7M13.25 10a3.25 3.25 0 1 1-6.5 0 3.25 3.25 0 0 1 6.5 0Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
           </svg>
-          <span className="text-sm font-semibold text-[#181d27]">35 °C</span>
+          <span className="text-sm font-semibold text-[#181d27]">{avgTemperature} °C</span>
         </div>
       </header>
 
