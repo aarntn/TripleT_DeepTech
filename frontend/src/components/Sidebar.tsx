@@ -1,3 +1,5 @@
+import solareLogo from "../assets/solare-logo.svg";
+
 export type PageId = "overview" | "map-view" | "panel-detail" | "revenue-intelligence";
 
 export type NavItem = {
@@ -63,12 +65,8 @@ export function Sidebar({ navItems, activePage, open, onNavigate, onClose, dataS
       <div className="p-5 pt-6">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="relative size-7 overflow-hidden rounded-[7px] border border-black/10 bg-white shadow-[0_1px_3px_rgba(10,13,18,0.16)]">
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.4),rgba(10,13,18,0.12))]" />
-              <div className="absolute inset-[7px] rounded-full bg-[#6941c6] shadow-inner" />
-              <div className="absolute left-2 top-2 size-2 rounded-full bg-white/45" />
-            </div>
-            <p className="text-xl font-semibold tracking-normal">SolarDust AI</p>
+            <img src={solareLogo} alt="" className="size-7 rounded-[7px] shadow-[0_1px_3px_rgba(10,13,18,0.16)]" />
+            <p className="text-xl font-semibold tracking-normal">Solare</p>
           </div>
           <button
             type="button"
@@ -107,12 +105,6 @@ export function Sidebar({ navItems, activePage, open, onNavigate, onClose, dataS
         </nav>
       </div>
 
-      <div className="p-5">
-        <div className="rounded-xl border border-[#e9eaeb] bg-[#fafafa] px-3 py-2">
-          <p className="text-xs font-semibold uppercase tracking-normal text-[#717680]">Data source</p>
-          <p className="mt-1 text-sm font-semibold text-[#181d27]">{dataSourceLabel}</p>
-        </div>
-      </div>
       </div>
     </aside>
   );

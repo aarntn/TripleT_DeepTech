@@ -1,4 +1,4 @@
-# SolarPanel Dashboard Design
+# Solare Dashboard Design
 
 This document captures the current product direction for the updated Figma-aligned dashboard, specifically the `Overview` and `Map View` screens.
 
@@ -36,8 +36,8 @@ Typography:
 ## Sidebar
 
 Brand:
-- Product label: `SolarPanel`
-- Small rounded logomark with purple center mark
+- Product label: `Solare`
+- SVG logo asset: `frontend/src/assets/solare-logo.svg`
 
 Navigation structure:
 

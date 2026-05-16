@@ -9,6 +9,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { sensorSamples } from "../../data/mockSolarData";
 import { formatCompactEnergy, formatRM, type RuntimePanel } from "../../utils/solarCalculations";
 
 type OverviewPageProps = {
@@ -18,8 +19,10 @@ type OverviewPageProps = {
     savedIfCleaned: number;
   };
   panels: RuntimePanel[];
+  sensorTick: number;
 };
 
+const panelRatedKw = 40;
 const gridEmissionFactorTonnesPerKwh = 0.000585;
 
 const formatDeltaPercent = (actual: number, expected: number) => {
@@ -30,7 +33,25 @@ const formatDeltaPercent = (actual: number, expected: number) => {
 
 const formatTonnes = (value: number) => `${value.toFixed(value >= 10 ? 0 : 1)} t`;
 
+const formatKw = (value: number) => value.toLocaleString("en-MY", { maximumFractionDigits: 1 });
+
 function OverviewIcon({ type }: { type: string }) {
+  if (type === "money") {
+    return (
+      <svg className="size-5" fill="none" viewBox="0 0 20 20">
+        <path d="M10 17.25a7.25 7.25 0 1 0 0-14.5 7.25 7.25 0 0 0 0 14.5Zm1.9-9.5c-.28-.68-.94-1.12-1.9-1.12-1.1 0-1.95.6-1.95 1.48 0 2.08 4.05.84 4.05 3.05 0 .88-.85 1.48-1.95 1.48-1.04 0-1.77-.48-2.06-1.23M10 5.5v9" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      </svg>
+    );
+  }
+
+  if (type === "weather") {
+    return (
+      <svg className="size-5" fill="none" viewBox="0 0 20 20">
+        <path d="M10 3v1.5m0 11V17m7-7h-1.5m-11 0H3m11.95-4.95-1.06 1.06M6.1 13.9l-1.05 1.05m9.9 0-1.06-1.05M6.1 6.1 5.05 5.05M13 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      </svg>
+    );
+  }
+
   if (type === "power") {
     return (
       <svg className="size-5" fill="none" viewBox="0 0 20 20">
@@ -70,28 +91,53 @@ function OverviewIcon({ type }: { type: string }) {
   );
 }
 
-type OverviewMetric = { label: string; value: string; unit: string; icon: string };
+type OverviewMetric = {
+  label: string;
+  value: string;
+  unit?: string;
+  helper: string;
+  icon: string;
+  tone?: "default" | "loss" | "gain" | "warning";
+};
 
 function MetricItem({ metric }: { metric: OverviewMetric }) {
+  const valueClass =
+    metric.tone === "loss"
+      ? "text-[#b42318]"
+      : metric.tone === "gain"
+        ? "text-[#067647]"
+        : metric.tone === "warning"
+          ? "text-[#dc6803]"
+          : "text-[#181d27]";
+
   return (
-    <article className="overflow-hidden rounded-xl border border-[#e9eaeb] bg-[#fdfdfd] shadow-[0_1px_2px_rgba(10,13,18,0.05)]">
+    <article className="flex flex-col overflow-hidden rounded-xl border border-[#e9eaeb] bg-[#fdfdfd] shadow-[0_1px_2px_rgba(10,13,18,0.05)]">
       <div className="flex items-center gap-2.5 px-5 py-3">
         <span className="text-[#181d27]">
           <OverviewIcon type={metric.icon} />
         </span>
         <p className="text-sm font-medium leading-5 text-[#181d27]">{metric.label}</p>
       </div>
-      <div className="rounded-xl border border-[#e9eaeb] bg-white p-5 shadow-[0_1px_2px_rgba(10,13,18,0.05)]">
-        <p className="flex items-end gap-2 font-semibold tracking-normal text-[#181d27]">
+      <div className="flex flex-1 flex-col rounded-xl border border-[#e9eaeb] bg-white p-5 shadow-[0_1px_2px_rgba(10,13,18,0.05)]">
+        <p className={`flex items-end gap-2 font-semibold tracking-normal ${valueClass}`}>
           <span className="text-[30px] leading-[38px]">{metric.value}</span>
-          <span className="pb-1 text-sm font-medium text-[#535862]">{metric.unit}</span>
+          {metric.unit ? <span className="pb-1 text-sm font-medium text-[#535862]">{metric.unit}</span> : null}
         </p>
+        <p className="mt-2 text-sm font-normal leading-5 text-[#535862]">{metric.helper}</p>
       </div>
     </article>
   );
 }
 
-function ChangeBadge({ tone, value }: { tone: string; value: string }) {
+function ChangeBadge({ tone, value }: { tone: "up" | "down" | "neutral"; value: string }) {
+  if (tone === "neutral") {
+    return (
+      <span className="inline-flex items-center rounded-md border border-[#d5d7da] bg-[#fafafa] px-1.5 py-0.5 text-sm font-medium text-[#535862]">
+        {value}
+      </span>
+    );
+  }
+
   const up = tone === "up";
   return (
     <span
@@ -105,33 +151,8 @@ function ChangeBadge({ tone, value }: { tone: string; value: string }) {
   );
 }
 
-function OperationalMetric({
-  label,
-  value,
-  helper,
-  tone,
-}: {
-  label: string;
-  value: string;
-  helper: string;
-  tone: "loss" | "gain";
-}) {
-  const valueClass = tone === "loss" ? "text-[#b42318]" : "text-[#067647]";
-
-  return (
-    <article className="overflow-hidden rounded-xl border border-[#e9eaeb] bg-[#fdfdfd] shadow-[0_1px_2px_rgba(10,13,18,0.05)]">
-      <div className="px-5 py-3">
-        <p className="text-sm font-semibold leading-5 text-[#181d27]">{label}</p>
-      </div>
-      <div className="rounded-xl border border-[#e9eaeb] bg-white p-5 shadow-[0_1px_2px_rgba(10,13,18,0.05)]">
-        <p className={`text-[30px] font-semibold leading-[38px] tracking-normal ${valueClass}`}>{value}</p>
-        <p className="mt-2 text-sm font-medium leading-5 text-[#535862]">{helper}</p>
-      </div>
-    </article>
-  );
-}
-
-export function OverviewPage({ totals, panels }: OverviewPageProps) {
+export function OverviewPage({ totals, panels, sensorTick }: OverviewPageProps) {
+  const sensorSample = sensorSamples[sensorTick % sensorSamples.length];
   const productionData =
     panels[0]?.timeline.map((point, index) => ({
       day: point.day,
@@ -142,67 +163,86 @@ export function OverviewPage({ totals, panels }: OverviewPageProps) {
   const peakProduction = productionData.reduce((peak, point) => Math.max(peak, point.actual), 0);
   const productionGap = latestProduction.actual - latestProduction.expected;
   const co2Avoided = latestProduction.actual * gridEmissionFactorTonnesPerKwh;
-  const latestSensors = panels.flatMap((panel) => panel.backendSensor ? [panel.backendSensor] : []);
-  const avgTemperature = latestSensors.length
-    ? Math.round(latestSensors.reduce((sum, sensor) => sum + sensor.temp_c, 0) / latestSensors.length)
-    : 35;
-  const avgEfficiency = panels.length
-    ? Math.round(panels.reduce((sum, panel) => sum + panel.efficiency, 0) / panels.length)
+  const currentFarmOutput = panels.reduce((sum, panel) => sum + (panel.efficiency / 100) * panelRatedKw, 0);
+  const expectedFarmOutput = panels.length * panelRatedKw;
+  const weatherAdjustedEfficiency = latestProduction.expected
+    ? Math.round((latestProduction.actual / latestProduction.expected) * 100)
     : 0;
-  const avgIrradiance = latestSensors.length
-    ? latestSensors.reduce((sum, sensor) => sum + sensor.irradiance_kwh_m2, 0) / latestSensors.length
-    : 5.2;
-  const metrics: OverviewMetric[] = [
-    { label: "Latest Actual Output", value: Math.round(latestProduction.actual).toLocaleString("en-MY"), unit: "kWh", icon: "plug" },
-    { label: "Average Efficiency", value: String(avgEfficiency), unit: "%", icon: "rate" },
-    { label: "Avg. Sensor Irradiance", value: avgIrradiance.toFixed(1), unit: "kWh/m²", icon: "power" },
-  ];
+  const needsCleaningCount = panels.filter((panel) => panel.classifier.type === "Dust" && panel.efficiency < 91).length;
 
   const chartStats = [
     {
-      label: "Generated Latest Day",
+      label: "Latest Generation",
       value: formatCompactEnergy(latestProduction.actual),
       change: formatDeltaPercent(latestProduction.actual, latestProduction.expected),
-      tone: latestProduction.actual >= latestProduction.expected ? "up" : "down",
+      tone: (latestProduction.actual >= latestProduction.expected ? "up" : "down") as const,
     },
     {
-      label: "Expected Latest Day",
+      label: "Weather-Adjusted Target",
       value: formatCompactEnergy(latestProduction.expected),
-      change: "target",
-      tone: "up",
+      change: "baseline",
+      tone: "neutral" as const,
     },
     {
-      label: "Gap to Target",
+      label: "Production Gap",
       value: formatCompactEnergy(productionGap),
       change: formatDeltaPercent(latestProduction.actual, latestProduction.expected),
-      tone: productionGap >= 0 ? "up" : "down",
+      tone: (productionGap >= 0 ? "up" : "down") as const,
     },
     {
       label: "CO₂ Avoided",
       value: formatTonnes(co2Avoided),
       change: `peak ${formatCompactEnergy(peakProduction)}`,
-      tone: "up",
+      tone: "neutral" as const,
     },
   ];
 
-  const operationalMetrics = [
+  const overviewMetrics: OverviewMetric[] = [
     {
       label: "Estimated Loss Today",
       value: formatRM(totals.lostToday),
-      helper: "Avoidable loss from backend demo sensor rows.",
-      tone: "loss" as const,
-    },
-    {
-      label: "Estimated Loss This Week",
-      value: formatRM(totals.lostThisWeek),
-      helper: "Weekly revenue leakage from weather-adjusted production gaps.",
-      tone: "loss" as const,
+      helper: "Avoidable revenue loss from blocks under target output.",
+      icon: "money",
+      tone: "loss",
     },
     {
       label: "Recoverable After Cleaning",
       value: formatRM(totals.savedIfCleaned),
       helper: "Estimated value if soiling-classified blocks are cleaned now.",
-      tone: "gain" as const,
+      icon: "money",
+      tone: "gain",
+    },
+    {
+      label: "Blocks Needing Cleaning",
+      value: `${needsCleaningCount}`,
+      unit: `/ ${panels.length}`,
+      helper: "Dust-classified blocks below the operating threshold.",
+      icon: "active",
+      tone: needsCleaningCount > 0 ? "warning" : "gain",
+    },
+    {
+      label: "Current Farm Output",
+      value: formatKw(currentFarmOutput),
+      unit: "kW",
+      helper: `Live output against ${formatKw(expectedFarmOutput)} kW block capacity.`,
+      icon: "power",
+      tone: "default",
+    },
+    {
+      label: "Weather-Adjusted Efficiency",
+      value: `${weatherAdjustedEfficiency}`,
+      unit: "%",
+      helper: "Actual production compared with expected output for current conditions.",
+      icon: "rate",
+      tone: weatherAdjustedEfficiency >= 90 ? "gain" : weatherAdjustedEfficiency >= 75 ? "warning" : "loss",
+    },
+    {
+      label: "Solar Irradiation",
+      value: sensorSample.irradiance.toFixed(1),
+      unit: "kWh/m²",
+      helper: `Module temp ${sensorSample.panelTemp} °C, wind ${sensorSample.wind} m/s.`,
+      icon: "weather",
+      tone: "default",
     },
   ];
 
@@ -214,25 +254,24 @@ export function OverviewPage({ totals, panels }: OverviewPageProps) {
           <svg className="size-5 text-[#181d27]" fill="none" viewBox="0 0 20 20">
             <path d="M10 2.5v2m0 11v2m7.5-7.5h-2m-11 0h-2m12.8-5.3-1.42 1.42M6.12 13.88 4.7 15.3m10.6 0-1.42-1.42M6.12 6.12 4.7 4.7M13.25 10a3.25 3.25 0 1 1-6.5 0 3.25 3.25 0 0 1 6.5 0Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
           </svg>
-          <span className="text-sm font-semibold text-[#181d27]">{avgTemperature} °C</span>
+          <span className="text-sm font-semibold text-[#181d27]">35 °C</span>
         </div>
       </header>
 
       <section className="grid gap-6 lg:grid-cols-3">
-        {operationalMetrics.map((metric) => (
-          <OperationalMetric key={metric.label} {...metric} />
-        ))}
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-3">
-        {metrics.map((metric) => (
+        {overviewMetrics.map((metric) => (
           <MetricItem key={metric.label} metric={metric} />
         ))}
       </section>
 
       <section className="rounded-xl border border-[#e9eaeb] bg-[#fdfdfd] p-5 shadow-[0_1px_2px_rgba(10,13,18,0.05)]">
         <div className="flex items-start justify-between gap-4 border-b border-[#e9eaeb] pb-5">
-          <h2 className="text-lg font-semibold leading-7 text-[#181d27]">Energy Production Today</h2>
+          <div>
+            <h2 className="text-lg font-semibold leading-7 text-[#181d27]">Farm Production Trend</h2>
+            <p className="mt-1 text-sm font-medium leading-5 text-[#535862]">
+              7-day actual production compared with the weather-adjusted target.
+            </p>
+          </div>
           <button
             type="button"
             aria-label="More options"

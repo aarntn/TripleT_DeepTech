@@ -23,6 +23,15 @@ const statusFill = {
   "Heavy loss": "rgba(225, 29, 72, 0.76)",
 };
 
+// Demo-only visual overrides — forces map polygon colors for presentation.
+// Does not affect panel data, classifier output, or any other component.
+const demoStatusOverride: Partial<Record<PanelId, keyof typeof statusFill>> = {
+  A2: "Clean",
+  C1: "Clean",
+  B1: "Heavy loss",
+  C2: "Heavy loss",
+};
+
 export function FarmOperationsMap({ panels, selectedId, onSelect }: FarmOperationsMapProps) {
   return (
     <section className="relative h-full overflow-hidden bg-slate-900">
@@ -45,7 +54,7 @@ export function FarmOperationsMap({ panels, selectedId, onSelect }: FarmOperatio
         <rect width="500" height="720" fill="rgba(2, 6, 23, 0.1)" />
         {panels.map((panel) => {
           const shape = panelShapes[panel.id];
-          const status = getPanelStatus(panel.efficiency);
+          const status = demoStatusOverride[panel.id as PanelId] ?? getPanelStatus(panel.efficiency);
           const active = panel.id === selectedId;
 
           return (
