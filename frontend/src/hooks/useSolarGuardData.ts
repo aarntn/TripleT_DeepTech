@@ -1,16 +1,23 @@
 import { useState, useEffect, useCallback } from "react";
 import { api, SensorReading, ClassifyResponse, ForecastPoint, WeatherPoint, ApiError } from "../lib/api";
-import { scenarios, ScenarioId, PanelId } from "../data/mockSolarData";
+import { scenarios, ScenarioId, PanelId, type ClassificationType } from "../data/mockSolarData";
 
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === "true";
 
-export type DataSource = "backend" | "mock" | "fallback";
+export type DataSource = "backend" | "mock" | "fallback" | "error";
+
+export type UiClassification = {
+  type: ClassificationType;
+  confidence: number;
+  cause: string;
+};
 
 export interface SolarGuardState {
   sensors: SensorReading[];
-  classification: Record<string, ClassifyResponse>;
+  classification: Record<string, UiClassification>;
   forecasts: Record<string, ForecastPoint[]>;
   weather: Record<string, WeatherPoint[]>;
+  histories: Record<string, SensorReading[]>;
   loading: boolean;
   refreshing: boolean;
   error: string | null;
@@ -24,12 +31,33 @@ export function useSolarGuardData(selectedScenarioId: ScenarioId, selectedArrayI
     classification: {},
     forecasts: {},
     weather: {},
+    histories: {},
     loading: true,
     refreshing: false,
     error: null,
     source: "mock",
     lastUpdated: null,
   });
+
+  const normalizeClassification = (result: ClassifyResponse): UiClassification => {
+    const normalizedType = result.type.toLowerCase();
+    const type: ClassificationType =
+      normalizedType === "dust" ? "Dust" : normalizedType === "weather" ? "Weather" : "Normal";
+    const confidence = result.confidence <= 1 ? Math.round(result.confidence * 100) : Math.round(result.confidence);
+
+    return {
+      type,
+      confidence,
+      cause: result.cause,
+    };
+  };
+
+  const groupHistoryByArray = (history: SensorReading[]) =>
+    history.reduce<Record<string, SensorReading[]>>((groups, reading) => {
+      if (!groups[reading.array_id]) groups[reading.array_id] = [];
+      groups[reading.array_id].push(reading);
+      return groups;
+    }, {});
 
   const loadData = useCallback(async (isRefresh = false) => {
     setState(prev => ({ ...prev, refreshing: isRefresh, loading: !isRefresh, error: null }));
@@ -41,16 +69,38 @@ export function useSolarGuardData(selectedScenarioId: ScenarioId, selectedArrayI
       // 2. Load sensors
       const sensors = await api.getLatestSensors();
 
-      // 3. Load forecast for selected array
+      // 3. Load backend CSV history for charts
+      const history = await api.getSensorHistory();
+
+      // 4. Classify all latest sensor readings
+      const classificationEntries = await Promise.all(
+        sensors.map(async (sensor) => {
+          const result = await api.classifySensor({
+            array_id: sensor.array_id,
+            efficiency_pct: sensor.efficiency_pct,
+            irradiance_kwh_m2: sensor.irradiance_kwh_m2,
+            cloud_cover_pct: sensor.cloud_cover_pct,
+            humidity_pct: sensor.humidity_pct,
+            rainfall_mm: sensor.rainfall_mm,
+            soiling_loss_pct: sensor.soiling_loss_pct,
+          });
+
+          return [sensor.array_id, normalizeClassification(result)] as const;
+        })
+      );
+
+      // 5. Load forecast for selected array
       const forecast = await api.getForecast(selectedArrayId);
 
-      // 4. Load weather for selected array
+      // 6. Load weather for selected array
       const weather = await api.getWeatherForecast(selectedArrayId);
 
-      // 5. Update state with backend data
+      // 7. Update state with backend data
       setState(prev => ({
         ...prev,
         sensors,
+        histories: groupHistoryByArray(history),
+        classification: Object.fromEntries(classificationEntries),
         forecasts: { ...prev.forecasts, [selectedArrayId]: forecast },
         weather: { ...prev.weather, [selectedArrayId]: weather },
         loading: false,
@@ -83,6 +133,7 @@ export function useSolarGuardData(selectedScenarioId: ScenarioId, selectedArrayI
         setState(prev => ({
           ...prev,
           sensors: mockSensors,
+          histories: {},
           loading: false,
           refreshing: false,
           source: "fallback",
@@ -95,7 +146,7 @@ export function useSolarGuardData(selectedScenarioId: ScenarioId, selectedArrayI
           loading: false,
           refreshing: false,
           error: err instanceof ApiError ? err.message : "Connection failed.",
-          source: "mock",
+          source: "error",
         }));
       }
     }
@@ -118,7 +169,7 @@ export function useSolarGuardData(selectedScenarioId: ScenarioId, selectedArrayI
 
       setState(prev => ({
         ...prev,
-        classification: { ...prev.classification, [arrayId]: result },
+        classification: { ...prev.classification, [arrayId]: normalizeClassification(result) },
       }));
     } catch (err) {
       console.error("Classification failed:", err);

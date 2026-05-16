@@ -30,7 +30,7 @@ export interface ClassifyRequest {
 }
 
 export interface ClassifyResponse {
-  type: string;
+  type: "dust" | "weather" | "normal" | string;
   confidence: number;
   cause: string;
 }
@@ -87,10 +87,6 @@ export interface ROIResponse {
   npv_rm: number;
   monthly: MonthlyRow[];
   cumulative: CumulativeRow[];
-}
-
-export interface MarketLocationsResponse {
-  locations: Record<string, string>;
 }
 
 export interface HormuzResponse {
@@ -180,6 +176,7 @@ async function apiFetch<T>(
 export const api = {
   getHealth: () => apiFetch<HealthResponse>("/"),
   getLatestSensors: () => apiFetch<SensorReading[]>("/api/sensor/latest"),
+  getSensorHistory: () => apiFetch<SensorReading[]>("/api/sensor/history"),
   classifySensor: (data: ClassifyRequest) =>
     apiFetch<ClassifyResponse>("/api/sensor/classify", {
       method: "POST",
@@ -193,6 +190,5 @@ export const api = {
       method: "POST",
       body: JSON.stringify(data),
     }),
-  getMarketLocations: () => apiFetch<MarketLocationsResponse>("/api/market/locations"),
   getHormuz: () => apiFetch<HormuzResponse>("/api/market/hormuz"),
 };

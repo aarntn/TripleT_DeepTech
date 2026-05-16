@@ -8,7 +8,7 @@ import { PanelDetailPage } from "./pages/PanelDetailPage";
 import { PanelManagementPage } from "./pages/PanelManagementPage";
 import { scenarios, type PanelId, type Scenario, type ScenarioId } from "../data/mockSolarData";
 import { useSolarGuardData } from "../hooks/useSolarGuardData";
-import { api, ROIResponse } from "../lib/api";
+import { api, ROIResponse, SensorReading } from "../lib/api";
 import {
   buildCleanedForecast,
   buildCleanedTimeline,
@@ -19,6 +19,7 @@ import {
   getTotals,
   marketProfiles,
   type MarketKey,
+  type RuntimePanel,
 } from "../utils/solarCalculations";
 
 const navItems: NavItem[] = [
@@ -26,6 +27,47 @@ const navItems: NavItem[] = [
   { id: "map-view", label: "Farm Map", section: "MONITORING", icon: "map" },
   { id: "revenue-intelligence", label: "Revenue & ROI", section: "INSIGHTS", icon: "revenue" },
 ];
+
+const formatSensorDay = (timestamp: string) => {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return timestamp;
+  return date.toLocaleDateString("en-MY", { month: "short", day: "numeric" });
+};
+
+const isStaleTimestamp = (timestamp?: string | null) => {
+  if (!timestamp) return false;
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return false;
+  return Date.now() - date.getTime() > 1000 * 60 * 60 * 24 * 7;
+};
+
+const sensorHistoryToTimeline = (history: SensorReading[]) => {
+  const grouped = history.reduce<Record<string, SensorReading[]>>((groups, row) => {
+    const dateKey = row.timestamp.slice(0, 10);
+    if (!groups[dateKey]) groups[dateKey] = [];
+    groups[dateKey].push(row);
+    return groups;
+  }, {});
+
+  return Object.values(grouped).slice(-7).map((rows) => {
+    const actual = rows.reduce((sum, row) => sum + row.actual_output_kwh, 0);
+    const expected = rows.reduce((sum, row) => sum + row.expected_output_kwh, 0);
+    const irradiance = rows.reduce((sum, row) => sum + row.irradiance_kwh_m2, 0);
+    const hasRain = rows.some((row) => row.rain_event || row.rainfall_mm > 0);
+    const avgCloud = rows.reduce((sum, row) => sum + row.cloud_cover_pct, 0) / rows.length;
+
+    return {
+      day: formatSensorDay(rows[0].timestamp),
+      expected: Math.round(expected),
+      actual: Math.round(actual),
+      efficiency: expected > 0 ? Math.round((actual / expected) * 100) : Math.round(rows[rows.length - 1].efficiency_pct),
+      weather: hasRain ? "Rain" : avgCloud > 60 ? "Cloudy" : "Clear",
+      irradiance: Number(irradiance.toFixed(2)),
+      revenueLoss: Math.max(0, Math.round((expected - actual) * 0.42)),
+      event: rows.some((row) => row.dust_flag === 1) ? "Soiling signal" : hasRain ? "Rain event" : undefined,
+    };
+  });
+};
 
 export default function Dashboard() {
   const [activePage, setActivePage] = useState<PageId>("overview");
@@ -42,7 +84,7 @@ export default function Dashboard() {
   const [hormuzMultiplier, setHormuzMultiplier] = useState(1.25);
 
   const scenarioId: ScenarioId = "dusty";
-  const { sensors, classification, forecasts, weather, loading, refreshing, error, source, lastUpdated, classifyArray, refresh } = 
+  const { sensors, classification, forecasts, weather, histories, loading, refreshing, error, source, lastUpdated, refresh } = 
     useSolarGuardData(scenarioId, selectedId);
 
   const [backendRoi, setBackendRoi] = useState<ROIResponse | null>(null);
@@ -87,12 +129,18 @@ export default function Dashboard() {
     fetchRoi();
   }, [fetchRoi]);
 
+  const sortedSensorTimestamps = sensors
+    .map((sensor) => sensor.timestamp)
+    .sort();
+  const latestSensorTimestamp = sortedSensorTimestamps[sortedSensorTimestamps.length - 1];
+  const staleBackendData = source === "backend" && isStaleTimestamp(latestSensorTimestamp);
+
   const scenario: Scenario = {
     ...scenarios[scenarioId],
-    label: source === "backend" ? "Farm A live monitoring" : "Farm A (Demo Fallback)",
+    label: source === "backend" ? "Farm A backend demo monitoring" : "Farm A (Demo Fallback)",
     summary:
       source === "backend" 
-        ? "Connected to SolarGuard API. Real-time sensor and weather telemetry driving classification."
+        ? "Connected to SolarGuard API. Demo CSV sensor rows are driving classification."
         : "Weather forecast input is treated as an automatic signal. Current forecast shows stable irradiance, so persistent output drops are prioritized as likely soiling unless a weather event explains them.",
   };
   
@@ -133,7 +181,7 @@ export default function Dashboard() {
   }, [farmMw, systemCost, market, effectiveTariff, source, backendRoi, hormuzMultiplier]);
 
   // Adapt backend sensors to panels if available
-  const panels = useMemo(() => {
+  const panels = useMemo<RuntimePanel[]>(() => {
     const basePanels = buildRuntimePanels(scenarios[scenarioId].panels, cleanedIds, sensorTick);
     if (source !== "backend") return basePanels;
 
@@ -142,19 +190,29 @@ export default function Dashboard() {
       if (!sensor) return p;
 
       const classifier = classification[p.id] || p.classifier;
+      const sensorHistory = histories[p.id] || [];
+      const backendTimeline = sensorHistoryToTimeline(sensorHistory);
 
       return {
         ...p,
         efficiency: Math.round(sensor.efficiency_pct),
         lossToday: Math.max(0, Math.round(sensor.expected_output_kwh - sensor.actual_output_kwh)),
+        lossThisWeek: backendTimeline.reduce((sum, point) => sum + point.revenueLoss, 0),
+        savedIfCleaned: sensor.dust_flag === 1 ? Math.max(0, Math.round((sensor.expected_output_kwh - sensor.actual_output_kwh) * 0.42)) : 0,
+        timeline: backendTimeline.length ? backendTimeline : p.timeline,
         classifier: {
           type: classifier.type as any,
           confidence: classifier.confidence,
           cause: classifier.cause,
-        }
+        },
+        backendSensor: sensor,
+        sensorHistory,
+        backendForecast: forecasts[p.id],
+        weatherRows: weather[p.id],
+        dataSource: "backend-demo",
       };
     });
-  }, [scenarioId, cleanedIds, sensorTick, sensors, classification, source]);
+  }, [scenarioId, cleanedIds, sensorTick, sensors, classification, histories, forecasts, weather, source]);
 
   const selectedPanel = useMemo(() => {
     const panel = panels.find((item) => item.id === selectedId) ?? panels[0];
@@ -178,8 +236,11 @@ export default function Dashboard() {
 
         return {
           day: f.date,
-          expected: panel.forecast[0]?.expected || 600, // Fallback expected
-          forecast: Math.round(f.forecast_efficiency_pct * 6), // Simplified scaling for demo
+          expected: Math.round(f.upper_bound),
+          forecast: Math.round(f.forecast_efficiency_pct),
+          lowerBound: f.lower_bound,
+          upperBound: f.upper_bound,
+          revenue: f.forecast_revenue_rm,
           weather: weatherLabel
         } as any;
       });
@@ -238,6 +299,22 @@ export default function Dashboard() {
       );
     }
 
+    if (source === "error") {
+      return (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-5 text-rose-800">
+          <p className="text-sm font-semibold">Backend connection failed</p>
+          <p className="mt-2 text-sm">{error ?? "Protected backend endpoints are unavailable."}</p>
+          <button
+            type="button"
+            onClick={refresh}
+            className="mt-4 rounded-md bg-rose-700 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-800"
+          >
+            Retry backend
+          </button>
+        </div>
+      );
+    }
+
     switch (activePage) {
       case "revenue-intelligence":
         return (
@@ -272,6 +349,8 @@ export default function Dashboard() {
             panels={panels}
             cleaningIds={cleaningIds}
             scenarioId={scenarioId}
+            selectedId={selectedId}
+            onPanelSelected={(id) => setSelectedId(id as PanelId)}
             onClean={cleanPanel}
           />
         );
@@ -291,6 +370,16 @@ export default function Dashboard() {
       onOpenSidebar={() => setSidebarOpen(true)}
       onCloseSidebar={() => setSidebarOpen(false)}
       dataSource={source}
+      status={{
+        source,
+        error,
+        lastUpdated,
+        refreshing,
+        staleBackendData,
+        latestSensorTimestamp,
+        weatherUnavailable: source === "backend" && (weather[selectedId]?.length ?? 0) === 0,
+        onRefresh: refresh,
+      }}
     >
       {page}
     </DashboardShell>

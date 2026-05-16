@@ -1,9 +1,15 @@
 import type { ClassifierResult, ForecastPoint, PanelArray, TimelinePoint } from "../data/mockSolarData";
+import type { ForecastPoint as BackendForecastPoint, SensorReading, WeatherPoint } from "../lib/api";
 
 export type RuntimePanel = PanelArray & {
   efficiency: number;
   lossToday: number;
   cleaned: boolean;
+  backendSensor?: SensorReading;
+  sensorHistory?: SensorReading[];
+  backendForecast?: BackendForecastPoint[];
+  weatherRows?: WeatherPoint[];
+  dataSource?: "backend-demo" | "mock";
 };
 
 export const formatRM = (value: number) => `RM ${Math.round(value).toLocaleString("en-MY")}`;
@@ -90,7 +96,7 @@ export const getRecommendationCopy = (panel: RuntimePanel, declining: boolean) =
   if (panel.classifier.type === "Normal") {
     return {
       title: `${panel.name} is operating normally.`,
-      action: "No cleaning action recommended. Continue monitoring live output and irradiance.",
+      action: "No cleaning action recommended. Continue monitoring output and irradiance.",
       impact: "RM 0 immediate cleaning value",
       tone: "normal",
     };
@@ -108,8 +114,8 @@ export const getRecommendationCopy = (panel: RuntimePanel, declining: boolean) =
   return {
     title: `${panel.name} shows soiling accumulation.`,
     action: declining
-      ? "Create a cleaning work order today. Forecast output is still declining."
-      : "Create a cleaning work order during the next maintenance window.",
+      ? "Simulate a cleaning work order today. Forecast output is still declining."
+      : "Simulate a cleaning work order during the next maintenance window.",
     impact: `Estimated recovery: ${formatRM(panel.savedIfCleaned)} this week`,
     tone: "dust",
   };
