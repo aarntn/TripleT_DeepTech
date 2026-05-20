@@ -79,4 +79,5 @@ class RetrospectiveValidationResponse(BaseModel):
     confusion_matrix: list[list[int]]
     per_class: dict[str, ClassMetrics]
     macro_f1: float
+    weighted_f1: float
     accuracy: float

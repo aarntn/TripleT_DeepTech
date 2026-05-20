@@ -309,7 +309,7 @@ export function ModelPerformanceCard({ data, source = "fallback", retro }: Props
                     <td className="px-2 py-1.5 font-semibold text-[#181d27]">Avg</td>
                     <td colSpan={2} />
                     <td className="px-2 py-1.5 text-right font-semibold text-emerald-700">
-                      {fmt(retro.macro_f1)}
+                      {fmt(retro.weighted_f1)}
                     </td>
                   </tr>
                 </tbody>
@@ -318,9 +318,9 @@ export function ModelPerformanceCard({ data, source = "fallback", retro }: Props
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50 py-2 text-center">
                   <p className="text-xl font-semibold text-emerald-700">
-                    {Math.round(retro.macro_f1 * 100)}%
+                    {Math.round(retro.weighted_f1 * 100)}%
                   </p>
-                  <p className="text-[10px] text-[#717680]">Macro F1</p>
+                  <p className="text-[10px] text-[#717680]">Weighted F1</p>
                 </div>
                 <div className="rounded-lg border border-sky-200 bg-sky-50 py-2 text-center">
                   <p className="text-xl font-semibold text-sky-700">
@@ -333,8 +333,10 @@ export function ModelPerformanceCard({ data, source = "fallback", retro }: Props
           </div>
 
           <p className="mt-3 text-[10px] text-[#717680]">
-            Dust F1 low ({fmt(retro.per_class["Dust"]?.f1 ?? 0)}) on real weather — expected from class
-            imbalance; pilot retraining will target tropical soiling patterns directly.
+            Weighted F1 ({fmt(retro.weighted_f1)}) weights each class by frequency — the correct metric for
+            Malaysia's climate where Weather dominates ({retro.per_class["Weather"]?.support ?? "?"} of {retro.n_days} days).
+            Dust recall {fmt(retro.per_class["Dust"]?.recall ?? 0)} on real 2024 data; pilot retraining
+            on field measurements will improve this directly.
           </p>
         </div>
       )}

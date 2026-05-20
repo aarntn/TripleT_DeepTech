@@ -130,6 +130,7 @@ export interface ClassifierRetroResponse {
   confusion_matrix: number[][];
   per_class: Record<string, ClassMetrics>;
   macro_f1: number;
+  weighted_f1: number;
   accuracy: number;
 }
 

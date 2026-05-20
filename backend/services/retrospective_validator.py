@@ -135,6 +135,12 @@ def run_retrospective_validation(
         for name in class_names
     }
 
+    total_support = sum(v["support"] for v in per_class.values())
+    weighted_f1 = round(
+        sum(v["f1"] * v["support"] for v in per_class.values()) / max(total_support, 1),
+        4,
+    )
+
     _retro_cache = {
         "location": "Selangor, Malaysia",
         "latitude": SELANGOR_LAT,
@@ -156,6 +162,7 @@ def run_retrospective_validation(
         "confusion_matrix": cm,
         "per_class": per_class,
         "macro_f1": round(report["macro avg"]["f1-score"], 4),
+        "weighted_f1": weighted_f1,
         "accuracy": round(float(report["accuracy"]), 4),
     }
     return _retro_cache
