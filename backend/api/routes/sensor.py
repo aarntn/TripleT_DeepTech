@@ -5,8 +5,9 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException, Path as PathParam
 
 from core.security import sanitize_log_value
-from models.sensor import ClassifyRequest, ClassifyResponse, ForecastPoint, SensorReading
-from services.dust_classifier import ClassifierInputError, ModelUnavailableError, classify
+from models.sensor import ClassifyRequest, ClassifyResponse, ClassifierPerformanceResponse, ForecastPoint, RetrospectiveValidationResponse, SensorReading
+from services.dust_classifier import ClassifierInputError, ModelUnavailableError, classify, compute_performance
+from services.retrospective_validator import run_retrospective_validation
 from services.forecaster import forecast as forecast_service
 
 sensor_router = APIRouter()
@@ -15,6 +16,32 @@ logger = logging.getLogger(__name__)
 
 DATA_DIR = Path(__file__).parents[3] / "data" / "processed"
 VALID_ARRAYS = {"A1", "A2", "B1", "B2", "C1", "C2"}
+
+
+@sensor_router.get("/classifier/performance", response_model=ClassifierPerformanceResponse)
+def get_classifier_performance() -> ClassifierPerformanceResponse:
+    try:
+        result = compute_performance()
+        return ClassifierPerformanceResponse(**result)
+    except FileNotFoundError as exc:
+        logger.exception("Classifier performance data unavailable: %s", exc)
+        raise HTTPException(status_code=503, detail="Sensor data unavailable.") from exc
+    except Exception as exc:
+        logger.exception("Classifier performance computation failed: %s", exc)
+        raise HTTPException(status_code=500, detail="Classifier performance error.") from exc
+
+
+@sensor_router.get("/classifier/retrospective", response_model=RetrospectiveValidationResponse)
+def get_retrospective_validation() -> RetrospectiveValidationResponse:
+    try:
+        result = run_retrospective_validation()
+        return RetrospectiveValidationResponse(**result)
+    except RuntimeError as exc:
+        logger.exception("Retrospective validation failed: %s", exc)
+        raise HTTPException(status_code=503, detail="Historical weather data unavailable.") from exc
+    except Exception as exc:
+        logger.exception("Retrospective validation error: %s", exc)
+        raise HTTPException(status_code=500, detail="Retrospective validation error.") from exc
 
 
 @sensor_router.post("/classify", response_model=ClassifyResponse)

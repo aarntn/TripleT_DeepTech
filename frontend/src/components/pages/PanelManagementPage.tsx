@@ -2,6 +2,8 @@ import { type ReactNode, useState } from "react";
 
 import { EnergyTimelineChart } from "../EnergyTimelineChart";
 import { FarmOperationsMap } from "../FarmOperationsMap";
+import { ModelPerformanceCard } from "../ModelPerformanceCard";
+import { useClassifierPerformance } from "../../hooks/useClassifierPerformance";
 import { getPanelStatus, type ScenarioId } from "../../data/mockSolarData";
 import { formatRM, type RuntimePanel } from "../../utils/solarCalculations";
 
@@ -338,6 +340,7 @@ function PanelOperationsSummary({ panel }: { panel: RuntimePanel }) {
 
 export function PanelManagementPage({ panels, cleaningIds, scenarioId, selectedId, onPanelSelected, onClean }: PanelManagementPageProps) {
   const [detailPanelId, setDetailPanelId] = useState<string | null>(null);
+  const { data: classifierData, source: classifierSource, retro: classifierRetro } = useClassifierPerformance();
 
   const detailPanel = detailPanelId ? (panels.find((p) => p.id === detailPanelId) ?? null) : null;
 
@@ -459,6 +462,8 @@ export function PanelManagementPage({ panels, cleaningIds, scenarioId, selectedI
                 );
               })}
             </div>
+
+            <ModelPerformanceCard data={classifierData} source={classifierSource} retro={classifierRetro} />
           </>
         )}
       </div>

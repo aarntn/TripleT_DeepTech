@@ -16,6 +16,7 @@ DATA_DIR = Path(__file__).parents[2] / "data"
 DEFAULT_PROCESSED_WEATHER_PATH = DATA_DIR / "processed" / "weather" / "forecast_weather.csv"
 NASA_POWER_HOURLY_URL = "https://power.larc.nasa.gov/api/temporal/hourly/point"
 OPENWEATHER_FORECAST_URL = "https://api.openweathermap.org/data/2.5/forecast"
+OPEN_METEO_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 NASA_POWER_PARAMETERS = ("ALLSKY_SFC_SW_DWN", "T2M", "RH2M", "PRECTOTCORR")
 
 
@@ -165,6 +166,53 @@ def fetch_openweather_forecast(
         array_id=array_id,
         fallback_irradiance_kwh_m2=fallback_irradiance_kwh_m2,
     )
+
+
+def fetch_open_meteo_history(
+    lat: float,
+    lon: float,
+    start_date: str,
+    end_date: str,
+    timezone: str = "Asia/Kuala_Lumpur",
+    timeout: float = 25.0,
+) -> list[dict]:
+    """Fetch daily historical weather from Open-Meteo Archive (no API key required)."""
+    query = urllib.parse.urlencode({
+        "latitude": lat,
+        "longitude": lon,
+        "start_date": start_date,
+        "end_date": end_date,
+        "daily": ",".join([
+            "precipitation_sum",
+            "cloudcover_mean",
+            "temperature_2m_mean",
+            "shortwave_radiation_sum",
+            "relative_humidity_2m_mean",
+        ]),
+        "timezone": timezone,
+    })
+    payload = _fetch_json(f"{OPEN_METEO_ARCHIVE_URL}?{query}", timeout=timeout)
+    daily = payload.get("daily", {})
+    dates = daily.get("time", [])
+    precip = daily.get("precipitation_sum", [])
+    cloud = daily.get("cloudcover_mean", [])
+    temp = daily.get("temperature_2m_mean", [])
+    radiation = daily.get("shortwave_radiation_sum", [])
+    humidity = daily.get("relative_humidity_2m_mean", [])
+
+    rows = []
+    for i, date in enumerate(dates):
+        # shortwave_radiation_sum is MJ/m²; convert to kWh/m² by dividing by 3.6
+        irradiance_kwh_m2 = _as_float(radiation[i] if i < len(radiation) else 0.0) / 3.6
+        rows.append({
+            "date": date,
+            "irradiance_kwh_m2": round(irradiance_kwh_m2, 4),
+            "cloud_cover_pct": round(_as_float(cloud[i] if i < len(cloud) else 20.0), 2),
+            "rainfall_mm": round(_as_float(precip[i] if i < len(precip) else 0.0), 4),
+            "temp_c": round(_as_float(temp[i] if i < len(temp) else 32.0), 2),
+            "humidity_pct": round(_as_float(humidity[i] if i < len(humidity) else 70.0), 2),
+        })
+    return rows
 
 
 def _weather_processed_path() -> Path:

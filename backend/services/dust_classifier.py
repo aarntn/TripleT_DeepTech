@@ -142,6 +142,87 @@ def train_and_save() -> None:
     _scaler = scaler
 
 
+def _assign_3class_label(dust_flag: int, cloud_cover_pct: float, rainfall_mm: float) -> int:
+    """Map binary dust_flag + weather features to 0=Dust, 1=Weather, 2=Normal."""
+    if dust_flag == 1:
+        return 0
+    if cloud_cover_pct > 50 or rainfall_mm > 0:
+        return 1
+    return 2
+
+
+def compute_performance() -> dict:
+    """Run a held-out evaluation of the classifier and return per-class metrics."""
+    from sklearn.metrics import classification_report, confusion_matrix as sk_confusion_matrix
+
+    dusty = pd.read_csv(DATA_DIR / "scenario_dusty_week.csv")
+    rainy = pd.read_csv(DATA_DIR / "scenario_rainy_week.csv")
+    df = pd.concat([dusty, rainy], ignore_index=True).reset_index(drop=True)
+
+    X = df[FEATURES].values
+    y_binary = df["dust_flag"].values
+    y_3class = np.array([
+        _assign_3class_label(
+            int(row["dust_flag"]),
+            float(row["cloud_cover_pct"]),
+            float(row["rainfall_mm"]),
+        )
+        for _, row in df.iterrows()
+    ])
+
+    X_train, X_test, y_train_bin, _, y_train_3c, y_test_3c = train_test_split(
+        X, y_binary, y_3class, test_size=0.2, random_state=42
+    )
+
+    scaler = StandardScaler()
+    X_train_s = scaler.fit_transform(X_train)
+    X_test_s = scaler.transform(X_test)
+
+    clf = RandomForestClassifier(n_estimators=100, random_state=42)
+    clf.fit(X_train_s, y_train_bin)
+
+    y_pred_binary = clf.predict(X_test_s)
+    y_pred_3class = np.array([
+        _assign_3class_label(int(p), float(X_test[i][FEATURES.index("cloud_cover_pct")]), float(X_test[i][FEATURES.index("rainfall_mm")]))
+        for i, p in enumerate(y_pred_binary)
+    ])
+
+    class_names = ["Dust", "Weather", "Normal"]
+    cm = sk_confusion_matrix(y_test_3c, y_pred_3class, labels=[0, 1, 2]).tolist()
+    report = classification_report(
+        y_test_3c, y_pred_3class,
+        labels=[0, 1, 2],
+        target_names=class_names,
+        output_dict=True,
+        zero_division=0,
+    )
+
+    per_class = {
+        name: {
+            "precision": round(report[name]["precision"], 4),
+            "recall": round(report[name]["recall"], 4),
+            "f1": round(report[name]["f1-score"], 4),
+            "support": int(report[name]["support"]),
+        }
+        for name in class_names
+    }
+    macro_f1 = round(report["macro avg"]["f1-score"], 4)
+    accuracy = round(float(report["accuracy"]), 4)
+
+    return {
+        "classes": class_names,
+        "confusion_matrix": cm,
+        "per_class": per_class,
+        "macro_f1": macro_f1,
+        "accuracy": accuracy,
+        "test_set_size": len(y_test_3c),
+        "train_set_size": len(y_train_3c),
+        "model_type": "RandomForestClassifier (100 estimators)",
+        "features": list(FEATURES),
+        "source": "held-out test split (random_state=42, test_size=0.2)",
+    }
+
+
 def classify(reading: dict) -> dict:
     try:
         clf, scaler = _load()

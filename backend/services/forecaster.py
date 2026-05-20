@@ -6,13 +6,15 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 
 from core.security import sanitize_log_value
+from services.roi_calculator import DEFAULT_TARIFF_RM_PER_KWH
 from services.weather_provider import get_weather_forecast
 
 logger = logging.getLogger(__name__)
 
 DATA_DIR = Path(__file__).parents[2] / "data" / "processed"
-LSS_TARIFF_RM = 0.39
-PANEL_AREA_M2 = 2000
+# Rated capacity of each monitored array block.  Used as kWp so that
+# revenue = irradiance (peak-sun-hours) × kWp × efficiency × tariff → RM/day.
+ARRAY_RATED_KWP = 2000
 VALID_ARRAYS = {"A1", "A2", "B1", "B2", "C1", "C2"}
 
 _SAFE_DEFAULT = [
@@ -143,7 +145,7 @@ def forecast(array_id: str, days: int = 3) -> list[dict]:
             cloud, humidity, rainfall, irradiance = 20.0, 75.0, 0.0, mean_irr
 
         eff = float(np.clip(model.predict([[day_idx, cloud, humidity, rainfall, irradiance]])[0], 0, 100))
-        revenue = irradiance * PANEL_AREA_M2 * (eff / 100.0) * LSS_TARIFF_RM
+        revenue = irradiance * ARRAY_RATED_KWP * (eff / 100.0) * DEFAULT_TARIFF_RM_PER_KWH
 
         results.append({
             "date": f"Day {day_idx + 1}",

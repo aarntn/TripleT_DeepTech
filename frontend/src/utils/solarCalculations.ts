@@ -208,7 +208,7 @@ export const calculateRoi = (
   const annuityFactor = (1 - (1 + discountRate) ** -projectLifeYears) / discountRate;
   const npv = annualNet * annuityFactor - systemCost;
 
-  const cumulative = Array.from({ length: 6 }, (_, year) => ({
+  const cumulative = Array.from({ length: projectLifeYears + 1 }, (_, year) => ({
     year: `Yr ${year}`,
     systemCostK: Math.round(systemCost / 1000),
     cumSavingsK: year === 0 ? 0 : Math.round((annualNet * year) / 1000),

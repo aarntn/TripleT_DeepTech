@@ -45,6 +45,7 @@ class ROIResponse(BaseModel):
     annual_carbon_rm: int
     system_cost_rm: int
     annual_om_rm: int
+    annual_subscription_rm: int
     annual_net_rm: int
     payback_years: float
     npv_rm: int

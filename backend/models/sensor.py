@@ -43,3 +43,39 @@ class ForecastPoint(BaseModel):
     forecast_revenue_rm: float
     lower_bound: float
     upper_bound: float
+
+
+class ClassMetrics(BaseModel):
+    precision: float
+    recall: float
+    f1: float
+    support: int
+
+
+class ClassifierPerformanceResponse(BaseModel):
+    classes: list[str]
+    confusion_matrix: list[list[int]]
+    per_class: dict[str, ClassMetrics]
+    macro_f1: float
+    accuracy: float
+    test_set_size: int
+    train_set_size: int
+    model_type: str
+    features: list[str]
+    source: str
+
+
+class RetrospectiveValidationResponse(BaseModel):
+    location: str
+    latitude: float
+    longitude: float
+    period_start: str
+    period_end: str
+    n_days: int
+    data_source: str
+    soiling_model: str
+    classes: list[str]
+    confusion_matrix: list[list[int]]
+    per_class: dict[str, ClassMetrics]
+    macro_f1: float
+    accuracy: float

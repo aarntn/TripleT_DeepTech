@@ -19,9 +19,10 @@ def test_monthly_count_is_twelve():
     assert len(result.monthly) == 12
 
 
-def test_cumulative_has_six_entries():
+def test_cumulative_covers_full_project_life():
+    from services.roi_calculator import PROJECT_LIFE_YEARS
     result = calculate_roi(mw=1, location="malaysia", tariff_rm_per_kwh=0.39)
-    assert len(result.cumulative) == 6
+    assert len(result.cumulative) == PROJECT_LIFE_YEARS + 1
 
 
 def test_hormuz_increases_annual_revenue():

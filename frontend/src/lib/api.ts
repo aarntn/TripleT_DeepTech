@@ -82,6 +82,7 @@ export interface ROIResponse {
   annual_carbon_rm: number;
   system_cost_rm: number;
   annual_om_rm: number;
+  annual_subscription_rm: number;
   annual_net_rm: number;
   payback_years: number;
   npv_rm: number;
@@ -93,6 +94,42 @@ export interface HormuzResponse {
   tariff_multiplier: number;
   scenario: string;
   source_note: string;
+}
+
+export interface ClassMetrics {
+  precision: number;
+  recall: number;
+  f1: number;
+  support: number;
+}
+
+export interface ClassifierPerformanceResponse {
+  classes: string[];
+  confusion_matrix: number[][];
+  per_class: Record<string, ClassMetrics>;
+  macro_f1: number;
+  accuracy: number;
+  test_set_size: number;
+  train_set_size: number;
+  model_type: string;
+  features: string[];
+  source: string;
+}
+
+export interface ClassifierRetroResponse {
+  location: string;
+  latitude: number;
+  longitude: number;
+  period_start: string;
+  period_end: string;
+  n_days: number;
+  data_source: string;
+  soiling_model: string;
+  classes: string[];
+  confusion_matrix: number[][];
+  per_class: Record<string, ClassMetrics>;
+  macro_f1: number;
+  accuracy: number;
 }
 
 export class ApiError extends Error {
@@ -191,4 +228,8 @@ export const api = {
       body: JSON.stringify(data),
     }),
   getHormuz: () => apiFetch<HormuzResponse>("/api/market/hormuz"),
+  getClassifierPerformance: () =>
+    apiFetch<ClassifierPerformanceResponse>("/api/sensor/classifier/performance"),
+  getClassifierRetrospective: () =>
+    apiFetch<ClassifierRetroResponse>("/api/sensor/classifier/retrospective"),
 };

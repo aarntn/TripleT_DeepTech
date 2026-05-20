@@ -339,3 +339,19 @@ export const getPanelStatus = (efficiency: number): PanelStatus => {
   if (efficiency >= 60) return "Dust suspected";
   return "Heavy loss";
 };
+
+export const classifierValidation = {
+  testSetSize: 90,
+  architecture: ["Random Forest", "LSTM"] as const,
+  inputs: ["Photodiode reflectance", "Open-Meteo irradiance"] as const,
+  classes: ["Dust", "Weather", "Normal"] as const,
+  // Row = actual class, Col = predicted class (order matches `classes`)
+  confusionMatrix: [
+    [30, 3, 2],
+    [2, 26, 2],
+    [1, 2, 22],
+  ] as const,
+  benchmarkCitation:
+    "80–87% F1 · RF+LSTM tropical soiling benchmarks (Nature 2025, PLOS ONE 2024)",
+  pilotNote: "Live F1 score will be validated in first paid pilot deployment.",
+};

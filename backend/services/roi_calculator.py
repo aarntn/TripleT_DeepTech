@@ -4,8 +4,11 @@ from typing import Literal
 from services.carbon_calculator import carbon_credit_rm
 from services.degradation_model import LOCATIONS, get_monthly_efficiency
 
-SYSTEM_COST_PER_MW = 120_000
-ANNUAL_OM_PER_MW = 15_000
+DEFAULT_TARIFF_RM_PER_KWH = 0.39       # Malaysia LSS tariff (Energy Commission 2024)
+SYSTEM_COST_PER_MW = 120_000           # Capital cost of cleaning hardware per MW
+SOLARGUARD_SUBSCRIPTION_RM_PER_MW = 6_000  # RM 6/kWp/yr — SolarSense wholesale rate
+OTHER_OM_RM_PER_MW = 9_000             # Cleaning labour, water, consumables per MW
+ANNUAL_OM_PER_MW = SOLARGUARD_SUBSCRIPTION_RM_PER_MW + OTHER_OM_RM_PER_MW  # = 15 000
 DISCOUNT_RATE = 0.10
 PROJECT_LIFE_YEARS = 7
 HORMUZ_MULTIPLIER = 1.25
@@ -28,6 +31,7 @@ class ROIResult:
     annual_carbon_rm: int
     system_cost_rm: int
     annual_om_rm: int
+    annual_subscription_rm: int
     annual_net_rm: int
     payback_years: float
     npv_rm: int
@@ -68,6 +72,7 @@ def calculate_roi(
     annual_carbon = sum(row.carbon_value_rm for row in monthly_records)
 
     system_cost = round(mw * SYSTEM_COST_PER_MW)
+    annual_subscription = round(mw * SOLARGUARD_SUBSCRIPTION_RM_PER_MW)
     annual_om = round(mw * ANNUAL_OM_PER_MW)
     annual_net = annual_revenue - annual_om
     payback = system_cost / max(annual_net, 1)
@@ -81,7 +86,7 @@ def calculate_roi(
             "system_cost_k": round(system_cost / 1_000),
             "cum_savings_k": 0 if year == 0 else round(annual_net * year / 1_000),
         }
-        for year in range(6)
+        for year in range(PROJECT_LIFE_YEARS + 1)
     ]
 
     return ROIResult(
@@ -90,6 +95,7 @@ def calculate_roi(
         annual_carbon_rm=annual_carbon,
         system_cost_rm=system_cost,
         annual_om_rm=annual_om,
+        annual_subscription_rm=annual_subscription,
         annual_net_rm=annual_net,
         payback_years=round(payback, 2),
         npv_rm=npv,
