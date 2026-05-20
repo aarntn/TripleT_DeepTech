@@ -36,7 +36,7 @@ def get_retrospective_validation() -> RetrospectiveValidationResponse:
     try:
         result = run_retrospective_validation()
         return RetrospectiveValidationResponse(**result)
-    except RuntimeError as exc:
+    except (RuntimeError, OSError) as exc:
         logger.exception("Retrospective validation failed: %s", exc)
         raise HTTPException(status_code=503, detail="Historical weather data unavailable.") from exc
     except Exception as exc:

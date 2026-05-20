@@ -7,6 +7,8 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix as sk_confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
@@ -151,9 +153,14 @@ def _assign_3class_label(dust_flag: int, cloud_cover_pct: float, rainfall_mm: fl
     return 2
 
 
+_performance_cache: dict | None = None
+
+
 def compute_performance() -> dict:
     """Run a held-out evaluation of the classifier and return per-class metrics."""
-    from sklearn.metrics import classification_report, confusion_matrix as sk_confusion_matrix
+    global _performance_cache
+    if _performance_cache is not None:
+        return _performance_cache
 
     dusty = pd.read_csv(DATA_DIR / "scenario_dusty_week.csv")
     rainy = pd.read_csv(DATA_DIR / "scenario_rainy_week.csv")
@@ -170,7 +177,8 @@ def compute_performance() -> dict:
         for _, row in df.iterrows()
     ])
 
-    X_train, X_test, y_train_bin, _, y_train_3c, y_test_3c = train_test_split(
+    # RF is trained on binary labels; 3-class split used only for evaluation
+    X_train, X_test, y_train_bin, _, _, y_test_3c = train_test_split(
         X, y_binary, y_3class, test_size=0.2, random_state=42
     )
 
@@ -181,9 +189,11 @@ def compute_performance() -> dict:
     clf = RandomForestClassifier(n_estimators=100, random_state=42)
     clf.fit(X_train_s, y_train_bin)
 
+    cloud_idx = FEATURES.index("cloud_cover_pct")
+    rain_idx = FEATURES.index("rainfall_mm")
     y_pred_binary = clf.predict(X_test_s)
     y_pred_3class = np.array([
-        _assign_3class_label(int(p), float(X_test[i][FEATURES.index("cloud_cover_pct")]), float(X_test[i][FEATURES.index("rainfall_mm")]))
+        _assign_3class_label(int(p), float(X_test[i][cloud_idx]), float(X_test[i][rain_idx]))
         for i, p in enumerate(y_pred_binary)
     ])
 
@@ -209,18 +219,19 @@ def compute_performance() -> dict:
     macro_f1 = round(report["macro avg"]["f1-score"], 4)
     accuracy = round(float(report["accuracy"]), 4)
 
-    return {
+    _performance_cache = {
         "classes": class_names,
         "confusion_matrix": cm,
         "per_class": per_class,
         "macro_f1": macro_f1,
         "accuracy": accuracy,
         "test_set_size": len(y_test_3c),
-        "train_set_size": len(y_train_3c),
+        "train_set_size": len(X_train),
         "model_type": "RandomForestClassifier (100 estimators)",
         "features": list(FEATURES),
         "source": "held-out test split (random_state=42, test_size=0.2)",
     }
+    return _performance_cache
 
 
 def classify(reading: dict) -> dict:

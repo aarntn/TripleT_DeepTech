@@ -74,6 +74,7 @@ class RetrospectiveValidationResponse(BaseModel):
     n_days: int
     data_source: str
     soiling_model: str
+    label_derivation: str
     classes: list[str]
     confusion_matrix: list[list[int]]
     per_class: dict[str, ClassMetrics]

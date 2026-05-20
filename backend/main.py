@@ -46,6 +46,13 @@ def load_local_env() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import asyncio
+    from services.dust_classifier import compute_performance
+    from services.retrospective_validator import run_retrospective_validation
+
+    loop = asyncio.get_event_loop()
+    loop.run_in_executor(None, compute_performance)
+    loop.run_in_executor(None, run_retrospective_validation)
     yield
 
 

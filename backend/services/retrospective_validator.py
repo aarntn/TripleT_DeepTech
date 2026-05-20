@@ -13,6 +13,8 @@ from services.weather_provider import fetch_open_meteo_history
 
 logger = logging.getLogger(__name__)
 
+_retro_cache: dict | None = None
+
 SELANGOR_LAT = 3.0738
 SELANGOR_LON = 101.5183
 
@@ -72,6 +74,10 @@ def run_retrospective_validation(
     labels from the same domain rules used in production classify(), giving an
     honest measure of how well the RF model generalises to real weather patterns.
     """
+    global _retro_cache
+    if _retro_cache is not None:
+        return _retro_cache
+
     logger.info(
         "[Retrospective] fetching Open-Meteo history %s → %s", start_date, end_date
     )
@@ -129,7 +135,7 @@ def run_retrospective_validation(
         for name in class_names
     }
 
-    return {
+    _retro_cache = {
         "location": "Selangor, Malaysia",
         "latitude": SELANGOR_LAT,
         "longitude": SELANGOR_LON,
@@ -141,9 +147,15 @@ def run_retrospective_validation(
             f"Dry-day accumulation {SOILING_RATE_PER_DRY_DAY}%/day, "
             f"rain reset ≥{RAIN_THRESHOLD_MM} mm/day"
         ),
+        "label_derivation": (
+            "3-class labels derived from the same rule as prediction mapping "
+            "(dust_flag → Dust; cloud>50% or rain>0 → Weather; else Normal). "
+            "Weather/Normal split is deterministic — only Dust recall is independently modelled."
+        ),
         "classes": class_names,
         "confusion_matrix": cm,
         "per_class": per_class,
         "macro_f1": round(report["macro avg"]["f1-score"], 4),
         "accuracy": round(float(report["accuracy"]), 4),
     }
+    return _retro_cache

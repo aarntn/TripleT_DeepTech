@@ -184,7 +184,7 @@ def fetch_open_meteo_history(
         "end_date": end_date,
         "daily": ",".join([
             "precipitation_sum",
-            "cloudcover_mean",
+            "cloud_cover_mean",
             "temperature_2m_mean",
             "shortwave_radiation_sum",
             "relative_humidity_2m_mean",
@@ -195,7 +195,7 @@ def fetch_open_meteo_history(
     daily = payload.get("daily", {})
     dates = daily.get("time", [])
     precip = daily.get("precipitation_sum", [])
-    cloud = daily.get("cloudcover_mean", [])
+    cloud = daily.get("cloud_cover_mean", [])
     temp = daily.get("temperature_2m_mean", [])
     radiation = daily.get("shortwave_radiation_sum", [])
     humidity = daily.get("relative_humidity_2m_mean", [])

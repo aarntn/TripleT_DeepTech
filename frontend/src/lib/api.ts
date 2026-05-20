@@ -125,6 +125,7 @@ export interface ClassifierRetroResponse {
   n_days: number;
   data_source: string;
   soiling_model: string;
+  label_derivation: string;
   classes: string[];
   confusion_matrix: number[][];
   per_class: Record<string, ClassMetrics>;
