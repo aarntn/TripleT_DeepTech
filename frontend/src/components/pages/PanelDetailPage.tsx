@@ -12,7 +12,8 @@ import {
   YAxis,
 } from "recharts";
 
-import { getPanelStatus, sensorSamples } from "../../data/mockSolarData";
+import { sensorSamples } from "../../data/mockSolarData";
+import { getPanelAutomationUi } from "../../utils/panelStatusUi";
 import { formatRM, type RuntimePanel } from "../../utils/solarCalculations";
 
 type PanelDetailPageProps = {
@@ -32,13 +33,13 @@ const panelSpecs = {
 const statusStyles = {
   Active: "border-emerald-300 bg-emerald-50 text-emerald-700",
   Fault: "border-amber-300 bg-amber-50 text-amber-700",
-  Offline: "border-rose-300 bg-rose-50 text-rose-700",
+  Offline: "border-sky-300 bg-sky-50 text-sky-700",
 };
 
 const alertStyles = {
   info: "border-sky-200 bg-sky-50 text-sky-700",
   warning: "border-amber-200 bg-amber-50 text-amber-700",
-  critical: "border-rose-200 bg-rose-50 text-rose-700",
+  critical: "border-sky-200 bg-sky-50 text-sky-700",
 };
 
 export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPageProps) {
@@ -62,9 +63,8 @@ export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPagePr
   const performanceRatio = Math.max(0.54, Math.min(0.96, panel.efficiency / 100 - 0.03));
   const co2Offset = Math.round(todayEnergy * 0.000585 * 1000);
   const estimatedSavings = Math.round(todayEnergy * 0.42);
-  const statusLabel = getPanelStatus(panel.efficiency);
-  const performanceLabel =
-    statusLabel === "Clean" ? "Normal" : statusLabel === "Dust suspected" ? "Soiling suspected" : "High loss";
+  const automationUi = getPanelAutomationUi(panel);
+  const performanceLabel = automationUi.label;
   const lastUpdated = sensor
     ? new Date(sensor.timestamp).toLocaleString("en-MY", { dateStyle: "medium", timeStyle: "short" })
     : "Demo sensor sample";
@@ -104,7 +104,7 @@ export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPagePr
     },
     {
       severity: panel.efficiency < 60 ? "critical" : "info",
-      title: panel.efficiency < 60 ? "Efficiency below 60% threshold" : "Inverter telemetry normal",
+      title: panel.efficiency < 60 ? "Priority auto-clean queued" : "Inverter telemetry normal",
       time: "12:42",
     },
     {
@@ -141,7 +141,7 @@ export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPagePr
               <p className="mt-2 text-sm text-slate-500">Farm A, Selangor, Malaysia · Panel Block {panel.id}</p>
             </div>
             <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-right">
-              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Last updated</p>
+              <p className="text-xs font-semibold text-emerald-700">Last updated</p>
               <p className="mt-1 text-lg font-semibold text-slate-950">{lastUpdated}</p>
               <p className="mt-1 text-sm font-semibold text-emerald-700">{performanceLabel}</p>
             </div>
@@ -157,7 +157,7 @@ export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPagePr
           ["Efficiency", `${panel.efficiency}%`, "Compared with expected output", "from-lime-300/25 to-emerald-400/15"],
         ].map(([label, value, helper, gradient]) => (
           <article key={label} className={`rounded-2xl border border-white bg-gradient-to-br ${gradient} p-5 shadow-sm ring-1 ring-slate-200/70`}>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+            <p className="text-xs font-semibold text-slate-500">{label}</p>
             <p className="mt-3 text-3xl font-semibold text-slate-950">{value}</p>
             <p className="mt-2 text-sm font-semibold text-slate-500">{helper}</p>
           </article>
@@ -168,7 +168,7 @@ export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPagePr
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Production trend</p>
+              <p className="text-xs font-semibold text-slate-500">Production trend</p>
               <h2 className="mt-2 text-xl font-semibold text-slate-950">Hourly power output today</h2>
             </div>
             <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
@@ -214,25 +214,25 @@ export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPagePr
 
         <div className="space-y-5">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Environmental conditions</p>
+            <p className="text-xs font-semibold text-slate-500">Environmental conditions</p>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-yellow-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-yellow-700">Irradiance</p>
+                <p className="text-xs font-semibold text-yellow-700">Irradiance</p>
                 <p className="mt-1 text-2xl font-semibold text-slate-950">{irradianceWatts} W/m²</p>
               </div>
               <div className="rounded-xl bg-orange-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">Ambient temp</p>
+                <p className="text-xs font-semibold text-orange-700">Ambient temp</p>
                 <p className="mt-1 text-2xl font-semibold text-slate-950">{ambientTemperature}°C</p>
               </div>
             </div>
             <div className="mt-3 rounded-xl bg-sky-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Weather condition</p>
+              <p className="text-xs font-semibold text-sky-700">Weather condition</p>
               <p className="mt-1 text-2xl font-semibold text-slate-950">{weatherCondition}</p>
             </div>
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">System status</p>
+            <p className="text-xs font-semibold text-slate-500">System status</p>
             <div className="mt-4 space-y-4">
               <div className="flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-3">
                 <span className="font-semibold text-slate-700">Inverter status</span>
@@ -258,7 +258,7 @@ export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPagePr
 
       <section className="grid gap-5 xl:grid-cols-[1fr_0.9fr]">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Performance summary</p>
+          <p className="text-xs font-semibold text-slate-500">Performance summary</p>
           <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_0.85fr]">
             <div className="h-[240px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -273,15 +273,15 @@ export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPagePr
             </div>
             <div className="grid gap-3">
               <div className="rounded-xl bg-emerald-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">CO₂ offset</p>
+                <p className="text-xs font-semibold text-emerald-700">CO₂ offset</p>
                 <p className="mt-1 text-2xl font-semibold text-slate-950">{co2Offset} kg</p>
               </div>
               <div className="rounded-xl bg-lime-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-lime-700">Estimated savings</p>
+                <p className="text-xs font-semibold text-lime-700">Estimated savings</p>
                 <p className="mt-1 text-2xl font-semibold text-slate-950">{formatRM(estimatedSavings)}</p>
               </div>
               <div className="rounded-xl bg-yellow-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-yellow-700">Performance ratio</p>
+                <p className="text-xs font-semibold text-yellow-700">Performance ratio</p>
                 <p className="mt-1 text-2xl font-semibold text-slate-950">{performanceRatio.toFixed(2)}</p>
               </div>
             </div>
@@ -290,12 +290,12 @@ export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPagePr
 
         <div className="space-y-5">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Alerts</p>
+            <p className="text-xs font-semibold text-slate-500">Alerts</p>
             <div className="mt-4 space-y-3">
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide">classifier</p>
+                    <p className="text-xs font-semibold">classifier</p>
                     <p className="mt-1 font-semibold">
                       {panel.classifier.type} signal, {Math.round(panel.classifier.confidence)}% confidence
                     </p>
@@ -307,7 +307,7 @@ export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPagePr
                 <div key={`${alert.title}-${alert.time}`} className={`rounded-xl border px-4 py-3 ${alertStyles[alert.severity]}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide">{alert.severity}</p>
+                      <p className="text-xs font-semibold">{alert.severity}</p>
                       <p className="mt-1 font-semibold">{alert.title}</p>
                     </div>
                     <span className="text-xs font-semibold">{alert.time}</span>
@@ -318,7 +318,7 @@ export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPagePr
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">PV module specs</p>
+            <p className="text-xs font-semibold text-slate-500">PV module specs</p>
             <dl className="mt-4 grid gap-3 text-sm">
               {[
                 ["Capacity", panelSpecs.capacity],

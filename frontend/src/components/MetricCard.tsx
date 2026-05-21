@@ -14,7 +14,7 @@ const toneStyles = {
 export function MetricCard({ label, value, helper, tone }: MetricCardProps) {
   return (
     <article className={`rounded-lg border p-5 shadow-sm ${toneStyles[tone]}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="text-xs font-semibold text-slate-500">{label}</p>
       <p className="mt-3 text-3xl font-semibold tracking-normal">{value}</p>
       <p className="mt-2 text-sm leading-5 text-slate-600">{helper}</p>
     </article>

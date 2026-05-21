@@ -1,5 +1,6 @@
-import { getPanelStatus, type PanelId } from "../data/mockSolarData";
+import { type PanelId } from "../data/mockSolarData";
 import { type RuntimePanel } from "../utils/solarCalculations";
+import { getPanelAutomationUi } from "../utils/panelStatusUi";
 import satelliteMap from "../assets/solar-farm-satellite-vertical.png";
 
 type FarmOperationsMapProps = {
@@ -15,21 +16,6 @@ const panelShapes: Record<PanelId, { points: string; labelX: number; labelY: num
   B2: { points: "279,275 253,391 257,420 387,455 388,455 393,316 281,275", labelX: 323, labelY: 365 },
   C1: { points: "75,490 61,528 49,528 39,548 43,580 165,616 167,608 180,606 197,510 77,490", labelX: 118, labelY: 553 },
   C2: { points: "243,434 228,465 213,600 387,562 401,527 401,476 244,434", labelX: 307, labelY: 517 },
-};
-
-const statusFill = {
-  Clean: "rgba(16, 185, 129, 0.66)",
-  "Dust suspected": "rgba(245, 158, 11, 0.72)",
-  "Heavy loss": "rgba(225, 29, 72, 0.76)",
-};
-
-// Demo-only visual overrides — forces map polygon colors for presentation.
-// Does not affect panel data, classifier output, or any other component.
-const demoStatusOverride: Partial<Record<PanelId, keyof typeof statusFill>> = {
-  A2: "Clean",
-  C1: "Clean",
-  B1: "Heavy loss",
-  C2: "Heavy loss",
 };
 
 export function FarmOperationsMap({ panels, selectedId, onSelect }: FarmOperationsMapProps) {
@@ -54,14 +40,14 @@ export function FarmOperationsMap({ panels, selectedId, onSelect }: FarmOperatio
         <rect width="500" height="720" fill="rgba(2, 6, 23, 0.1)" />
         {panels.map((panel) => {
           const shape = panelShapes[panel.id];
-          const status = demoStatusOverride[panel.id as PanelId] ?? getPanelStatus(panel.efficiency);
+          const statusUi = getPanelAutomationUi(panel);
           const active = panel.id === selectedId;
 
           return (
             <g key={panel.id} className="cursor-pointer" onClick={() => onSelect(panel.id)}>
               <polygon
                 points={shape.points}
-                fill={statusFill[status]}
+                fill={statusUi.mapFill}
                 stroke={active ? "#ffffff" : "rgba(255,255,255,0.72)"}
                 strokeWidth={active ? 5 : 2}
                 filter={active ? "url(#activeGlow)" : undefined}

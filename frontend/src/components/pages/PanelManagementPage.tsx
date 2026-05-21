@@ -2,9 +2,8 @@ import { type ReactNode, useState } from "react";
 
 import { EnergyTimelineChart } from "../EnergyTimelineChart";
 import { FarmOperationsMap } from "../FarmOperationsMap";
-import { ModelPerformanceCard } from "../ModelPerformanceCard";
-import { useClassifierPerformance } from "../../hooks/useClassifierPerformance";
-import { getPanelStatus, type ScenarioId } from "../../data/mockSolarData";
+import { type ScenarioId } from "../../data/mockSolarData";
+import { getPanelAutomationUi } from "../../utils/panelStatusUi";
 import { formatRM, type RuntimePanel } from "../../utils/solarCalculations";
 
 const PANEL_RATED_KW = 40;
@@ -17,7 +16,10 @@ const PANEL_SPECS = {
   location: "3.0738, 101.5183",
 };
 
-const isPanelDirty = (panel: RuntimePanel) => getPanelStatus(panel.efficiency) !== "Clean";
+const isPanelDirty = (panel: RuntimePanel) => {
+  const state = getPanelAutomationUi(panel).state;
+  return state === "scheduled" || state === "queued";
+};
 
 const getSoilingIndex = (efficiency: number) => Math.max(0, Math.min(100, Math.round((100 - efficiency) * 1.55)));
 
@@ -37,6 +39,68 @@ const getOperationalStatus = (panel: RuntimePanel) => {
   if (panel.efficiency < 25) return "Offline";
   if (panel.efficiency < 65 || panel.classifier.type === "Dust") return "Fault";
   return "Active";
+};
+
+type AutoCleaningPlan = {
+  label: string;
+  title: string;
+  startWindow: string;
+  detailRows: Array<{ label: string; value: string }>;
+  note?: string;
+  tone: "success" | "warning" | "info" | "neutral";
+};
+
+const getAutoCleaningPlan = (panel: RuntimePanel): AutoCleaningPlan => {
+  const automation = getPanelAutomationUi(panel);
+  const scheduledMinute = String((20 + panel.id.charCodeAt(1) * 7) % 60).padStart(2, "0");
+
+  if (automation.state === "normal") {
+    return {
+      label: "Standby",
+      title: "No cleaning cycle needed",
+      startWindow: "Next scan 02:00",
+      detailRows: [],
+      tone: "success",
+    };
+  }
+
+  if (automation.state === "deferred") {
+    return {
+      label: "Weather hold",
+      title: "Auto-clean deferred",
+      startWindow: "Recheck after irradiance stabilizes",
+      detailRows: [
+        { label: "Trigger", value: "Weather-linked output dip" },
+        { label: "Action", value: "Hold cleaning cycle" },
+      ],
+      note: "Cleaning waits until the weather signal clears.",
+      tone: "neutral",
+    };
+  }
+
+  if (automation.state === "queued") {
+    return {
+      label: "Queued",
+      title: "Automatic cleaning queued",
+      startWindow: `Today 18:${scheduledMinute}`,
+      detailRows: [
+        { label: "Trigger", value: "High soiling signal" },
+        { label: "Expected savings", value: formatRM(panel.savedIfCleaned || panel.lossThisWeek) },
+      ],
+      tone: "info",
+    };
+  }
+
+  return {
+    label: "Scheduled",
+    title: "Automatic cleaning scheduled",
+    startWindow: `Tonight 22:${scheduledMinute}`,
+    detailRows: [
+      { label: "Trigger", value: "Soiling trend" },
+      { label: "Expected savings", value: formatRM(panel.savedIfCleaned || panel.lossThisWeek) },
+    ],
+    tone: "warning",
+  };
 };
 
 const getPanelTelemetry = (panel: RuntimePanel) => {
@@ -100,19 +164,14 @@ type PanelManagementPageProps = {
   onClean: (id: string) => void;
 };
 
-function StatusBadge({ efficiency }: { efficiency: number }) {
-  const status = getPanelStatus(efficiency);
-  const isClean = status === "Clean";
+function StatusBadge({ panel }: { panel: RuntimePanel }) {
+  const statusUi = getPanelAutomationUi(panel);
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs font-semibold ${
-        isClean
-          ? "border-[#e9eaeb] bg-[#ecfdf3] text-[#067647]"
-          : "border-[#e9eaeb] bg-[#fffaeb] text-[#dc6803]"
-      }`}
+      className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs font-semibold ${statusUi.badgeClass}`}
     >
-      <span className={`size-1.5 rounded-full ${isClean ? "bg-[#17b26a]" : "bg-[#dc6803]"}`} />
-      {isClean ? "Normal" : "Needs clean"}
+      <span className={`size-1.5 rounded-full ${statusUi.dotClass}`} />
+      {statusUi.shortLabel}
     </span>
   );
 }
@@ -158,7 +217,10 @@ function MetricsGrid({
         </div>
         <div className="p-5">
           <p className="text-sm font-medium text-[#535862]">Blocks Needing Cleaning</p>
-          <p className="mt-2 text-[30px] font-semibold leading-[38px] text-[#181d27]">{needClean}</p>
+          <p className="mt-2 text-[30px] font-semibold leading-[38px] text-[#181d27]">
+            <span>{needClean}</span>
+            <span className="text-xl font-medium text-[#535862]">/{totalCount}</span>
+          </p>
         </div>
       </div>
     </div>
@@ -181,14 +243,14 @@ function DetailMetricCard({
   const toneClasses = {
     neutral: "text-[#181d27]",
     warning: "text-[#dc6803]",
-    danger: "text-[#e11d48]",
+    danger: "text-[#0369a1]",
     success: "text-[#067647]",
     blue: "text-[#2563eb]",
   };
 
   return (
     <div className="min-h-[118px] rounded-xl border border-[#e9eaeb] bg-white p-4 shadow-[0_1px_2px_rgba(10,13,18,0.04)]">
-      <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#667085]">{label}</p>
+      <p className="text-[12px] font-semibold text-[#667085]">{label}</p>
       <div className="mt-2 flex items-end gap-1">
         <p className={`text-[26px] font-semibold leading-8 ${toneClasses[tone]}`}>{value}</p>
         {unit ? <p className="pb-0.5 text-sm font-medium text-[#535862]">{unit}</p> : null}
@@ -215,6 +277,75 @@ function BatteryProgressStrip({ panel }: { panel: RuntimePanel }) {
   );
 }
 
+function AutoCleaningScheduleCard({
+  panel,
+  cleaning,
+  onClean,
+}: {
+  panel: RuntimePanel;
+  cleaning: boolean;
+  onClean: (id: string) => void;
+}) {
+  const plan = getAutoCleaningPlan(panel);
+  const canClean = isPanelDirty(panel);
+  const toneClasses = {
+    success: {
+      window: "border-[#abefc6] bg-[#ecfdf3]",
+      text: "text-[#067647]",
+    },
+    warning: {
+      window: "border-[#fedf89] bg-[#fffaeb]",
+      text: "text-[#b54708]",
+    },
+    info: {
+      window: "border-[#bae6fd] bg-[#f0f9ff]",
+      text: "text-[#0369a1]",
+    },
+    neutral: {
+      window: "border-[#e9eaeb] bg-[#fafafa]",
+      text: "text-[#535862]",
+    },
+  }[plan.tone];
+
+  return (
+    <section className="rounded-xl border border-[#e9eaeb] bg-white p-4 shadow-[0_1px_2px_rgba(10,13,18,0.04)]">
+      <div>
+        <div>
+          <h2 className="text-lg font-semibold leading-7 text-[#181d27]">{plan.title}</h2>
+        </div>
+      </div>
+
+      <div className={`mt-4 rounded-lg border p-3 ${toneClasses.window}`}>
+        <p className="text-xs font-medium text-[#717680]">Start window</p>
+        <p className={`mt-1 text-2xl font-semibold leading-8 ${toneClasses.text}`}>{plan.startWindow}</p>
+      </div>
+
+      {plan.detailRows.length > 0 ? (
+        <dl className="mt-4 grid grid-cols-2 gap-3">
+          {plan.detailRows.map((row) => (
+            <div key={row.label}>
+              <dt className="text-xs font-medium text-[#717680]">{row.label}</dt>
+              <dd className="mt-0.5 text-sm font-semibold text-[#181d27]">{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      {plan.note ? <p className="mt-3 text-sm leading-5 text-[#535862]">{plan.note}</p> : null}
+
+      {canClean ? (
+        <button
+          type="button"
+          onClick={() => onClean(panel.id)}
+          disabled={cleaning}
+          className="mt-4 w-full rounded-lg bg-[#17b26a] py-2.5 text-sm font-semibold text-white transition hover:bg-[#0ea05f] disabled:cursor-not-allowed disabled:bg-[#6ee7b7]"
+        >
+          {cleaning ? "Cleaning..." : "Clean now"}
+        </button>
+      ) : null}
+    </section>
+  );
+}
+
 function DetailMetricsGrid({ panel }: { panel: RuntimePanel }) {
   const telemetry = getPanelTelemetry(panel);
   const outputUnit = panel.backendSensor ? "kWh" : "kW";
@@ -226,7 +357,7 @@ function DetailMetricsGrid({ panel }: { panel: RuntimePanel }) {
       <DetailMetricCard label="Panel Temp" value={telemetry.panelTemperature} unit="°C" hint={`${telemetry.ambientTemperature} °C ambient`} tone={telemetry.panelTemperature > 48 ? "warning" : "neutral"} />
       <DetailMetricCard label="Efficiency" value={panel.efficiency} unit="%" hint="Compared with expected output" tone={panel.efficiency > 90 ? "success" : "warning"} />
       <DetailMetricCard label="Saved Today" value={formatRM(telemetry.estimatedSavings)} hint="Estimated value generated today" tone="success" />
-      <DetailMetricCard label="Loss Today" value={formatRM(panel.lossToday)} hint="Estimated revenue loss" tone={panel.lossToday > 0 ? "danger" : "success"} />
+      <DetailMetricCard label="Loss Today" value={formatRM(panel.lossToday)} hint="Covered by auto-clean dispatch" tone={panel.lossToday > 0 ? "blue" : "success"} />
     </div>
   );
 }
@@ -245,7 +376,7 @@ function KeyValueGrid({ items }: { items: Array<{ label: string; value: string; 
     default: "text-[#181d27]",
     success: "text-[#067647]",
     warning: "text-[#b54708]",
-    danger: "text-[#b42318]",
+    danger: "text-[#0369a1]",
   };
 
   return (
@@ -274,7 +405,7 @@ function PanelOperationsSummary({ panel }: { panel: RuntimePanel }) {
         : (telemetry.cloudCover ?? 0) > 60
           ? "Cloudy"
           : "Clear";
-  const maintenanceDue = getPriorityLabel(panel) === "High" ? "Due now" : isPanelDirty(panel) ? "This week" : "14 days";
+  const maintenanceDue = getPriorityLabel(panel) === "High" ? "Auto-clean queued" : isPanelDirty(panel) ? "Scheduled this week" : "Standby";
   const latestAlert =
     status === "Active"
       ? "Output within expected range"
@@ -325,7 +456,7 @@ function PanelOperationsSummary({ panel }: { panel: RuntimePanel }) {
             { label: "Latest alert", value: latestAlert, tone: status === "Active" ? "success" : "warning" },
             { label: "Classifier", value: classifierSummary, tone: panel.classifier.type === "Dust" ? "warning" : panel.classifier.type === "Weather" ? "default" : "success" },
             { label: "Cause", value: panel.classifier.cause },
-            { label: "Maintenance", value: maintenanceDue, tone: maintenanceDue === "Due now" ? "danger" : "default" },
+            { label: "Maintenance", value: maintenanceDue, tone: maintenanceDue === "Auto-clean queued" ? "danger" : "default" },
             { label: "Module", value: PANEL_SPECS.module },
             { label: "Capacity", value: PANEL_SPECS.capacity },
             { label: "Inverter model", value: PANEL_SPECS.inverter },
@@ -340,7 +471,6 @@ function PanelOperationsSummary({ panel }: { panel: RuntimePanel }) {
 
 export function PanelManagementPage({ panels, cleaningIds, scenarioId, selectedId, onPanelSelected, onClean }: PanelManagementPageProps) {
   const [detailPanelId, setDetailPanelId] = useState<string | null>(null);
-  const { data: classifierData, source: classifierSource, retro: classifierRetro } = useClassifierPerformance();
 
   const detailPanel = detailPanelId ? (panels.find((p) => p.id === detailPanelId) ?? null) : null;
 
@@ -384,19 +514,14 @@ export function PanelManagementPage({ panels, cleaningIds, scenarioId, selectedI
                   <span className="text-base text-[#535862]">Farm A</span>
                 </div>
               </div>
-              <StatusBadge efficiency={detailPanel.efficiency} />
+              <StatusBadge panel={detailPanel} />
             </div>
 
-            {isPanelDirty(detailPanel) && (
-              <button
-                type="button"
-                onClick={() => onClean(detailPanel.id)}
-                disabled={cleaningIds.has(detailPanel.id)}
-                className="w-full rounded-xl bg-[#17b26a] py-2.5 text-sm font-semibold text-white transition hover:bg-[#0ea05f] disabled:cursor-not-allowed disabled:bg-[#6ee7b7]"
-              >
-                {cleaningIds.has(detailPanel.id) ? "Simulating work order..." : "Simulate Cleaning Work Order"}
-              </button>
-            )}
+            <AutoCleaningScheduleCard
+              panel={detailPanel}
+              cleaning={cleaningIds.has(detailPanel.id)}
+              onClean={onClean}
+            />
 
             <BatteryProgressStrip panel={detailPanel} />
 
@@ -434,8 +559,7 @@ export function PanelManagementPage({ panels, cleaningIds, scenarioId, selectedI
               </div>
 
               {panels.map((panel) => {
-                const status = getPanelStatus(panel.efficiency);
-                const isClean = status === "Clean";
+                const statusUi = getPanelAutomationUi(panel);
                 const output = ((panel.efficiency / 100) * PANEL_RATED_KW).toFixed(1);
 
                 return (
@@ -449,21 +573,15 @@ export function PanelManagementPage({ panels, cleaningIds, scenarioId, selectedI
                     <p className="whitespace-nowrap text-sm text-[#181d27]">{output} kW</p>
                     <p className="whitespace-nowrap text-sm text-[#181d27]">{panel.efficiency}%</p>
                     <span
-                      className={`inline-flex w-fit items-center gap-1.5 self-start justify-self-start whitespace-nowrap rounded-xl border px-2 py-1 text-xs font-semibold ${
-                        isClean
-                          ? "border-[#e9eaeb] bg-[#ecfdf3] text-[#067647]"
-                          : "border-[#e9eaeb] bg-[#fffaeb] text-[#dc6803]"
-                      }`}
+                      className={`inline-flex w-fit items-center gap-1.5 self-start justify-self-start whitespace-nowrap rounded-xl border px-2 py-1 text-xs font-semibold ${statusUi.badgeClass}`}
                     >
-                      <span className={`size-1.5 rounded-full ${isClean ? "bg-[#17b26a]" : "bg-[#dc6803]"}`} />
-                      {isClean ? "Normal" : "Needs clean"}
+                      <span className={`size-1.5 rounded-full ${statusUi.dotClass}`} />
+                      {statusUi.shortLabel}
                     </span>
                   </button>
                 );
               })}
             </div>
-
-            <ModelPerformanceCard data={classifierData} source={classifierSource} retro={classifierRetro} />
           </>
         )}
       </div>

@@ -114,8 +114,8 @@ export const getRecommendationCopy = (panel: RuntimePanel, declining: boolean) =
   return {
     title: `${panel.name} shows soiling accumulation.`,
     action: declining
-      ? "Simulate a cleaning work order today. Forecast output is still declining."
-      : "Simulate a cleaning work order during the next maintenance window.",
+      ? "Clean now. Forecast output is still declining."
+      : "Clean during the next maintenance window.",
     impact: `Estimated recovery: ${formatRM(panel.savedIfCleaned)} this week`,
     tone: "dust",
   };

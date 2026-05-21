@@ -30,7 +30,7 @@ export function EnergyTimelineChart({ panel, scenario }: EnergyTimelineChartProp
     <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">7-day production timeline</p>
+          <p className="text-xs font-semibold text-slate-500">7-day production timeline</p>
           <h2 className="mt-2 text-xl font-semibold text-slate-950">{panel.name}: expected vs actual</h2>
         </div>
       </div>

@@ -10,7 +10,9 @@ import {
 } from "recharts";
 
 import { sensorSamples } from "../../data/mockSolarData";
+import { useClassifierPerformance } from "../../hooks/useClassifierPerformance";
 import { formatCompactEnergy, formatRM, type RuntimePanel } from "../../utils/solarCalculations";
+import { ModelPerformanceCard } from "../ModelPerformanceCard";
 
 type OverviewPageProps = {
   totals: {
@@ -100,6 +102,8 @@ type OverviewMetric = {
   tone?: "default" | "loss" | "gain" | "warning";
 };
 
+type ChartTone = "up" | "down" | "neutral";
+
 function MetricItem({ metric }: { metric: OverviewMetric }) {
   const valueClass =
     metric.tone === "loss"
@@ -152,6 +156,7 @@ function ChangeBadge({ tone, value }: { tone: "up" | "down" | "neutral"; value: 
 }
 
 export function OverviewPage({ totals, panels, sensorTick }: OverviewPageProps) {
+  const { data: classifierData, source: classifierSource, retro: classifierRetro } = useClassifierPerformance();
   const sensorSample = sensorSamples[sensorTick % sensorSamples.length];
   const productionData =
     panels[0]?.timeline.map((point, index) => ({
@@ -170,12 +175,12 @@ export function OverviewPage({ totals, panels, sensorTick }: OverviewPageProps) 
     : 0;
   const needsCleaningCount = panels.filter((panel) => panel.classifier.type === "Dust" && panel.efficiency < 91).length;
 
-  const chartStats = [
+  const chartStats: Array<{ label: string; value: string; change: string; tone: ChartTone }> = [
     {
       label: "Latest Generation",
       value: formatCompactEnergy(latestProduction.actual),
       change: formatDeltaPercent(latestProduction.actual, latestProduction.expected),
-      tone: (latestProduction.actual >= latestProduction.expected ? "up" : "down") as const,
+      tone: latestProduction.actual >= latestProduction.expected ? "up" : "down",
     },
     {
       label: "Weather-Adjusted Target",
@@ -187,7 +192,7 @@ export function OverviewPage({ totals, panels, sensorTick }: OverviewPageProps) 
       label: "Production Gap",
       value: formatCompactEnergy(productionGap),
       change: formatDeltaPercent(latestProduction.actual, latestProduction.expected),
-      tone: (productionGap >= 0 ? "up" : "down") as const,
+      tone: productionGap >= 0 ? "up" : "down",
     },
     {
       label: "CO₂ Avoided",
@@ -347,6 +352,10 @@ export function OverviewPage({ totals, panels, sensorTick }: OverviewPageProps) 
             </AreaChart>
           </ResponsiveContainer>
         </div>
+      </section>
+
+      <section>
+        <ModelPerformanceCard data={classifierData} source={classifierSource} retro={classifierRetro} />
       </section>
     </div>
   );

@@ -14,7 +14,7 @@ const toneStyles = {
 export function RecommendationCard({ title, action, impact, tone }: RecommendationCardProps) {
   return (
     <section className={`rounded-lg border p-5 shadow-sm ${toneStyles[tone]}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide opacity-70">Maintenance recommendation</p>
+      <p className="text-xs font-semibold opacity-70">Maintenance recommendation</p>
       <h2 className="mt-3 text-2xl font-semibold leading-tight">{title}</h2>
       <p className="mt-3 text-base leading-6">{action}</p>
       <p className="mt-5 rounded-lg bg-white/70 px-4 py-3 text-xl font-semibold shadow-sm">{impact}</p>

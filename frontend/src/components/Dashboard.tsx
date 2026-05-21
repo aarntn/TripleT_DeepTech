@@ -22,9 +22,9 @@ import {
 } from "../utils/solarCalculations";
 
 const navItems: NavItem[] = [
-  { id: "overview", label: "Operations Overview", section: "MONITORING", icon: "overview" },
-  { id: "map-view", label: "Farm Map", section: "MONITORING", icon: "map" },
-  { id: "revenue-intelligence", label: "Revenue & ROI", section: "INSIGHTS", icon: "revenue" },
+  { id: "overview", label: "Operations Overview", section: "Monitoring", icon: "overview" },
+  { id: "map-view", label: "Farm Map", section: "Monitoring", icon: "map" },
+  { id: "revenue-intelligence", label: "Revenue & ROI", section: "Insights", icon: "revenue" },
 ];
 
 export default function Dashboard() {
@@ -42,7 +42,7 @@ export default function Dashboard() {
   const [hormuzMultiplier, setHormuzMultiplier] = useState(1.25);
 
   const scenarioId: ScenarioId = "dusty";
-  const { sensors, classification, forecasts, weather, loading, refreshing, error, source, lastUpdated, classifyArray, refresh } = 
+  const { sensors, classification, forecasts, weather, histories, loading, refreshing, error, source, lastUpdated, classifyArray, refresh } = 
     useSolarGuardData(scenarioId, selectedId);
 
   const [backendRoi, setBackendRoi] = useState<ROIResponse | null>(null);
@@ -140,11 +140,22 @@ export default function Dashboard() {
     return basePanels.map(p => {
       const sensor = sensors.find(s => s.array_id === p.id);
       if (!sensor) return p;
+      if (p.cleaned) {
+        return {
+          ...p,
+          backendSensor: sensor,
+          sensorHistory: histories[p.id],
+          dataSource: "backend-demo" as const,
+        };
+      }
 
       const classifier = classification[p.id] || p.classifier;
 
       return {
         ...p,
+        backendSensor: sensor,
+        sensorHistory: histories[p.id],
+        dataSource: "backend-demo" as const,
         efficiency: Math.round(sensor.efficiency_pct),
         lossToday: Math.max(0, Math.round(sensor.expected_output_kwh - sensor.actual_output_kwh)),
         classifier: {
@@ -154,7 +165,7 @@ export default function Dashboard() {
         }
       };
     });
-  }, [scenarioId, cleanedIds, sensorTick, sensors, classification, source]);
+  }, [scenarioId, cleanedIds, sensorTick, sensors, histories, classification, source]);
 
   const selectedPanel = useMemo(() => {
     const panel = panels.find((item) => item.id === selectedId) ?? panels[0];
@@ -272,6 +283,8 @@ export default function Dashboard() {
             panels={panels}
             cleaningIds={cleaningIds}
             scenarioId={scenarioId}
+            selectedId={selectedId}
+            onPanelSelected={(id) => setSelectedId(id as PanelId)}
             onClean={cleanPanel}
           />
         );

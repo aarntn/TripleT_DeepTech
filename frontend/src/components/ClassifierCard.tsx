@@ -23,7 +23,7 @@ export function ClassifierCard({ panel }: ClassifierCardProps) {
     <section className="rounded-lg border border-slate-200 bg-slate-950 p-5 text-white shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Soiling vs weather classifier</p>
+          <p className="text-xs font-semibold text-slate-400">Soiling vs weather classifier</p>
           <h2 className="mt-2 text-2xl font-semibold">{panel.name}</h2>
         </div>
         <div className="flex flex-wrap gap-2">

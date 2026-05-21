@@ -5,7 +5,7 @@ export type PageId = "overview" | "map-view" | "panel-detail" | "revenue-intelli
 export type NavItem = {
   id: PageId;
   label: string;
-  section: "MONITORING" | "INSIGHTS";
+  section: "Monitoring" | "Insights";
   icon: "overview" | "map" | "revenue";
 };
 
@@ -24,7 +24,7 @@ export function Sidebar({ navItems, activePage, open, onNavigate, onClose, dataS
       groups[item.section].push(item);
       return groups;
     },
-    { MONITORING: [], INSIGHTS: [] },
+    { Monitoring: [], Insights: [] },
   );
 
   const iconFor = (icon: NavItem["icon"]) => {
@@ -78,9 +78,9 @@ export function Sidebar({ navItems, activePage, open, onNavigate, onClose, dataS
         </div>
 
         <nav className="mt-7 space-y-8">
-          {(["MONITORING", "INSIGHTS"] as const).map((section) => (
+          {(["Monitoring", "Insights"] as const).map((section) => (
             <div key={section} className="space-y-1">
-              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-normal text-[#717680]">{section}</p>
+              <p className="px-3 pb-1 text-xs font-semibold tracking-normal text-[#717680]">{section}</p>
               {groupedItems[section].map((item) => {
                 const active = activePage === item.id || (item.id === "map-view" && activePage === "panel-detail");
                 return (

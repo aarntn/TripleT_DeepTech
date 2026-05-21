@@ -59,8 +59,13 @@ export function useSolarGuardData(selectedScenarioId: ScenarioId, selectedArrayI
       return groups;
     }, {});
 
-  const loadData = useCallback(async (isRefresh = false) => {
-    setState(prev => ({ ...prev, refreshing: isRefresh, loading: !isRefresh, error: null }));
+  const loadData = useCallback(async (arrayId: PanelId, isRefresh = false) => {
+    setState(prev => ({
+      ...prev,
+      refreshing: isRefresh,
+      loading: !isRefresh && prev.sensors.length === 0,
+      error: null,
+    }));
 
     try {
       // 1. Check health
@@ -89,11 +94,11 @@ export function useSolarGuardData(selectedScenarioId: ScenarioId, selectedArrayI
         })
       );
 
-      // 5. Load forecast for selected array
-      const forecast = await api.getForecast(selectedArrayId);
-
-      // 6. Load weather for selected array
-      const weather = await api.getWeatherForecast(selectedArrayId);
+      // 5. Load panel-specific context for the initially selected array
+      const [forecast, weather] = await Promise.all([
+        api.getForecast(arrayId),
+        api.getWeatherForecast(arrayId),
+      ]);
 
       // 7. Update state with backend data
       setState(prev => ({
@@ -101,8 +106,8 @@ export function useSolarGuardData(selectedScenarioId: ScenarioId, selectedArrayI
         sensors,
         histories: groupHistoryByArray(history),
         classification: Object.fromEntries(classificationEntries),
-        forecasts: { ...prev.forecasts, [selectedArrayId]: forecast },
-        weather: { ...prev.weather, [selectedArrayId]: weather },
+        forecasts: { ...prev.forecasts, [arrayId]: forecast },
+        weather: { ...prev.weather, [arrayId]: weather },
         loading: false,
         refreshing: false,
         source: "backend",
@@ -150,7 +155,7 @@ export function useSolarGuardData(selectedScenarioId: ScenarioId, selectedArrayI
         }));
       }
     }
-  }, [selectedArrayId, selectedScenarioId]);
+  }, [selectedScenarioId]);
 
   const classifyArray = useCallback(async (arrayId: string) => {
     const sensor = state.sensors.find(s => s.array_id === arrayId);
@@ -177,8 +182,36 @@ export function useSolarGuardData(selectedScenarioId: ScenarioId, selectedArrayI
   }, [state.sensors, state.source]);
 
   useEffect(() => {
-    loadData();
+    loadData(selectedArrayId);
   }, [loadData]);
 
-  return { ...state, refresh: () => loadData(true), classifyArray };
+  useEffect(() => {
+    if (state.source !== "backend" || state.loading) return;
+    if (state.forecasts[selectedArrayId] && state.weather[selectedArrayId]) return;
+
+    let cancelled = false;
+
+    Promise.all([
+      api.getForecast(selectedArrayId),
+      api.getWeatherForecast(selectedArrayId),
+    ])
+      .then(([forecast, weather]) => {
+        if (cancelled) return;
+        setState(prev => ({
+          ...prev,
+          forecasts: { ...prev.forecasts, [selectedArrayId]: forecast },
+          weather: { ...prev.weather, [selectedArrayId]: weather },
+        }));
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("Panel context fetch failed:", err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedArrayId, state.forecasts, state.loading, state.source, state.weather]);
+
+  return { ...state, refresh: () => loadData(selectedArrayId, true), classifyArray };
 }

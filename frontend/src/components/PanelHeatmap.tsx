@@ -46,7 +46,7 @@ export function PanelHeatmap({
           disabled={dirtyCount === 0}
           className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          Simulate cleaning work orders
+          Clean all now
         </button>
       </div>
 

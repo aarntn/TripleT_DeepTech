@@ -47,7 +47,7 @@ export function BusinessRoiPage(props: BusinessRoiPageProps) {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
-            <thead className="bg-white text-xs uppercase tracking-wide text-slate-500">
+            <thead className="bg-white text-xs text-slate-500">
               <tr>
                 <th className="px-4 py-3">Month</th>
                 <th className="px-4 py-3">Eff. w/ cleaning</th>

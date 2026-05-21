@@ -63,7 +63,7 @@ export function ROICalculator({
     <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-xs font-semibold text-slate-500">
             Commercial intelligence + IP integration
           </p>
           <h2 className="mt-2 text-xl font-semibold text-slate-950">Investment payback summary</h2>
@@ -81,7 +81,7 @@ export function ROICalculator({
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <div className="rounded-lg bg-slate-50 p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Farm size</span>
+            <span className="text-xs font-semibold text-slate-500">Farm size</span>
             <span className="text-lg font-semibold text-slate-950">{farmMw} MW</span>
           </div>
           <input
@@ -96,7 +96,7 @@ export function ROICalculator({
         </div>
 
         <div className="rounded-lg bg-slate-50 p-4">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Target market</span>
+          <span className="text-xs font-semibold text-slate-500">Target market</span>
           <div className="mt-3 flex flex-wrap gap-2">
             {Object.values(marketProfiles).map((item) => (
               <button
@@ -118,7 +118,7 @@ export function ROICalculator({
 
         <div className="rounded-lg bg-slate-50 p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Energy tariff</span>
+            <span className="text-xs font-semibold text-slate-500">Energy tariff</span>
             <span className="text-lg font-semibold text-slate-950">RM {tariff.toFixed(2)}/kWh</span>
           </div>
           <input
@@ -134,7 +134,7 @@ export function ROICalculator({
 
         <div className={`rounded-lg p-4 ${isBackend ? "bg-slate-100 opacity-80" : "bg-slate-50"}`}>
           <div className="flex items-center justify-between gap-4">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Cleaning system cost</span>
+            <span className="text-xs font-semibold text-slate-500">Cleaning system cost</span>
             <span className="text-lg font-semibold text-slate-950">{formatRM(systemCost)}</span>
           </div>
           {isBackend ? (
@@ -157,7 +157,7 @@ export function ROICalculator({
         <div className="rounded-lg bg-slate-50 p-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tariff sensitivity</span>
+              <span className="text-xs font-semibold text-slate-500">Tariff sensitivity</span>
               <p className="mt-2 text-sm text-slate-500">Models recovered revenue with a 25% tariff increase.</p>
             </div>
             <button
@@ -183,24 +183,24 @@ export function ROICalculator({
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">Annual revenue recovered</p>
+          <p className="text-xs font-semibold text-emerald-600">Annual revenue recovered</p>
           <p className="mt-2 text-2xl font-semibold text-emerald-700">{formatRM(roi.annualSavings)}</p>
           <p className="mt-1 text-sm text-emerald-700">{formatCompactEnergy(roi.annualKwhRecovered)}/yr restored</p>
         </div>
         <div className="rounded-lg border border-indigo-100 bg-indigo-50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Payback period</p>
+          <p className="text-xs font-semibold text-indigo-600">Payback period</p>
           <p className="mt-2 text-2xl font-semibold text-indigo-700">
             {Number.isFinite(roi.payback) ? `${roi.payback.toFixed(1)} years` : "N/A"}
           </p>
           <p className="mt-1 text-sm text-indigo-700">Within target range</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">NPV project life</p>
+          <p className="text-xs font-semibold text-slate-500">NPV project life</p>
           <p className="mt-2 text-2xl font-semibold text-slate-950">{formatRM(roi.npv)}</p>
           <p className="mt-1 text-sm text-slate-500">After system cost and O&M</p>
         </div>
         <div className="rounded-lg border border-cyan-100 bg-cyan-50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-cyan-600">Carbon credits</p>
+          <p className="text-xs font-semibold text-cyan-600">Carbon credits</p>
           <p className="mt-2 text-2xl font-semibold text-cyan-700">{formatRM(roi.annualCarbon)}/yr</p>
           <p className="mt-1 text-sm text-cyan-700">@ RM 40/tCO₂e</p>
         </div>
@@ -262,7 +262,7 @@ export function ROICalculator({
       <div className="mt-5 rounded-lg border border-emerald-100 bg-emerald-50 p-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+            <p className="text-xs font-semibold text-emerald-700">
               IP integration - water loop synergy
             </p>
             <p className="mt-3 text-sm text-emerald-900">Cleaning water supplied by Water Harvester UI 2023002890</p>
@@ -277,7 +277,7 @@ export function ROICalculator({
             <p className="mt-3 text-sm text-emerald-700">{market.waterNote}</p>
           </div>
           <div className="rounded-lg bg-white/80 px-5 py-4 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Water saved</p>
+            <p className="text-xs font-semibold text-slate-500">Water saved</p>
             <p className="mt-2 text-2xl font-semibold text-slate-950">{roi.waterSaved.toLocaleString("en-MY")} L</p>
             <p className="text-sm text-slate-500">per month</p>
           </div>
