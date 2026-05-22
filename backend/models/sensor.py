@@ -57,6 +57,7 @@ class ClassifierPerformanceResponse(BaseModel):
     confusion_matrix: list[list[int]]
     per_class: dict[str, ClassMetrics]
     macro_f1: float
+    weighted_f1: float | None = None
     accuracy: float
     test_set_size: int
     train_set_size: int

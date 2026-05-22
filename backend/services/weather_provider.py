@@ -12,7 +12,7 @@ from core.security import sanitize_log_value
 
 logger = logging.getLogger(__name__)
 
-DATA_DIR = Path(__file__).parents[2] / "data"
+DATA_DIR = Path(__file__).parent.parent / "data"
 DEFAULT_PROCESSED_WEATHER_PATH = DATA_DIR / "processed" / "weather" / "forecast_weather.csv"
 NASA_POWER_HOURLY_URL = "https://power.larc.nasa.gov/api/temporal/hourly/point"
 OPENWEATHER_FORECAST_URL = "https://api.openweathermap.org/data/2.5/forecast"
