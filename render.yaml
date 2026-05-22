@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: solare-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: APP_ENV
+        value: development
+      - key: MODEL_LOAD_MODE
+        value: train-fallback
+      - key: WEATHER_PROVIDER
+        value: synthetic
+      - key: CARBON_PRICE_RM
+        value: "40"
+      - key: TRUSTED_HOSTS
+        value: "*"
+      - key: SOLARGUARD_API_KEYS
+        sync: false   # set manually in Render dashboard — keep secret
+      - key: CORS_ORIGINS
+        sync: false   # set to your Vercel URL after deploying frontend
