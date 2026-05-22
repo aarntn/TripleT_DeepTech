@@ -126,7 +126,14 @@ def forecast(array_id: str, days: int = 3) -> list[dict]:
     model = LinearRegression()
     model.fit(X, y)
     residuals = y - model.predict(X)
-    residual_std = max(float(np.std(residuals)), 0.01)  # ensure non-zero for bounds
+    residual_std = float(np.std(residuals))
+
+    # Realistic uncertainty floor: tropical day-ahead solar GHI forecast RMSE is
+    # typically 10–15% of mean irradiance, propagating to ~3–5% efficiency uncertainty
+    # (1σ). Synthetic training residuals are near-zero by design, so we enforce a floor.
+    # Uncertainty also grows with horizon — each additional day is less predictable.
+    MIN_FORECAST_STD = 3.5        # % efficiency points, 1-sigma floor (tropical Malaysia)
+    HORIZON_SCALE = [1.0, 1.35, 1.70]  # Day+1, Day+2, Day+3 scaling
 
     last_day = int(daily["day_idx"].max())
     mean_irr = float(daily["irradiance_kwh_m2"].mean())
@@ -147,12 +154,13 @@ def forecast(array_id: str, days: int = 3) -> list[dict]:
         eff = float(np.clip(model.predict([[day_idx, cloud, humidity, rainfall, irradiance]])[0], 0, 100))
         revenue = irradiance * ARRAY_RATED_KWP * (eff / 100.0) * DEFAULT_TARIFF_RM_PER_KWH
 
+        horizon_std = max(residual_std, MIN_FORECAST_STD) * HORIZON_SCALE[min(i, len(HORIZON_SCALE) - 1)]
         results.append({
             "date": f"Day {day_idx + 1}",
             "forecast_efficiency_pct": round(eff, 2),
             "forecast_revenue_rm": round(revenue, 2),
-            "lower_bound": round(float(np.clip(eff - 1.5 * residual_std, 0, 100)), 2),
-            "upper_bound": round(float(np.clip(eff + 1.5 * residual_std, 0, 100)), 2),
+            "lower_bound": round(float(np.clip(eff - 1.5 * horizon_std, 0, 100)), 2),
+            "upper_bound": round(float(np.clip(eff + 1.5 * horizon_std, 0, 100)), 2),
         })
 
     return results
