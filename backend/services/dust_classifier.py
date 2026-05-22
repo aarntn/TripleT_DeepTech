@@ -14,7 +14,7 @@ from sklearn.preprocessing import StandardScaler
 
 logger = logging.getLogger(__name__)
 
-DATA_DIR = Path(__file__).parents[2] / "data" / "processed"
+DATA_DIR = Path(__file__).parent.parent / "data"
 MODEL_DIR = Path(__file__).parents[1] / "models"
 CLASSIFIER_PATH = MODEL_DIR / "dust_classifier.joblib"
 SCALER_PATH = MODEL_DIR / "dust_scaler.joblib"

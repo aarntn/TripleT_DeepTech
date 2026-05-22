@@ -14,7 +14,7 @@ sensor_router = APIRouter()
 forecast_router = APIRouter()
 logger = logging.getLogger(__name__)
 
-DATA_DIR = Path(__file__).parents[3] / "data" / "processed"
+DATA_DIR = Path(__file__).parents[2] / "data"
 VALID_ARRAYS = {"A1", "A2", "B1", "B2", "C1", "C2"}
 
 

@@ -11,7 +11,7 @@ from services.weather_provider import get_weather_forecast
 
 logger = logging.getLogger(__name__)
 
-DATA_DIR = Path(__file__).parents[2] / "data" / "processed"
+DATA_DIR = Path(__file__).parent.parent / "data"
 # Rated capacity of each monitored array block.  Used as kWp so that
 # revenue = irradiance (peak-sun-hours) × kWp × efficiency × tariff → RM/day.
 ARRAY_RATED_KWP = 2000
