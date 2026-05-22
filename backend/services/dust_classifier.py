@@ -222,6 +222,7 @@ def compute_performance() -> dict:
         for name in class_names
     }
     macro_f1 = round(report["macro avg"]["f1-score"], 4)
+    weighted_f1 = round(report["weighted avg"]["f1-score"], 4)
     accuracy = round(float(report["accuracy"]), 4)
 
     _performance_cache = {
@@ -229,6 +230,7 @@ def compute_performance() -> dict:
         "confusion_matrix": cm,
         "per_class": per_class,
         "macro_f1": macro_f1,
+        "weighted_f1": weighted_f1,
         "accuracy": accuracy,
         "test_set_size": len(y_test_3c),
         "train_set_size": len(X_train),
