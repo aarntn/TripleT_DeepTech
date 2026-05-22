@@ -153,6 +153,11 @@ def _assign_3class_label(dust_flag: int, cloud_cover_pct: float, rainfall_mm: fl
     return 2
 
 
+# Public aliases for use by retrospective_validator — callers should not access
+# the private underscore names directly.
+assign_3class_label = _assign_3class_label
+fit_classifier = _fit_classifier
+
 _performance_cache: dict | None = None
 
 

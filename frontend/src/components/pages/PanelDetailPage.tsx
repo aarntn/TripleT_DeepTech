@@ -103,8 +103,11 @@ export function PanelDetailPage({ panel, sensorTick, onBack }: PanelDetailPagePr
       time: "13:10",
     },
     {
-      severity: panel.efficiency < 60 ? "critical" : "info",
-      title: panel.efficiency < 60 ? "Priority auto-clean queued" : "Inverter telemetry normal",
+      severity: automationUi.state === "queued" ? "critical" : "info",
+      title: automationUi.state === "queued" ? "Priority auto-clean queued"
+           : automationUi.state === "deferred" ? "Weather hold: cleaning deferred"
+           : automationUi.state === "scheduled" ? "Auto-clean scheduled"
+           : "Inverter telemetry normal",
       time: "12:42",
     },
     {

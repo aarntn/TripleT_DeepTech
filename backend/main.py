@@ -47,12 +47,24 @@ def load_local_env() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     import asyncio
+    import logging
     from services.dust_classifier import compute_performance
     from services.retrospective_validator import run_retrospective_validation
 
-    loop = asyncio.get_event_loop()
-    loop.run_in_executor(None, compute_performance)
-    loop.run_in_executor(None, run_retrospective_validation)
+    _log = logging.getLogger(__name__)
+
+    def _warmup():
+        try:
+            compute_performance()
+        except Exception:
+            _log.exception("Startup warm-up: compute_performance failed")
+        try:
+            run_retrospective_validation()
+        except Exception:
+            _log.exception("Startup warm-up: run_retrospective_validation failed")
+
+    loop = asyncio.get_running_loop()
+    loop.run_in_executor(None, _warmup)
     yield
 
 

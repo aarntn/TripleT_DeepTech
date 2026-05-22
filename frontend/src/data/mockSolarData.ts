@@ -342,8 +342,8 @@ export const getPanelStatus = (efficiency: number): PanelStatus => {
 
 export const classifierValidation = {
   testSetSize: 90,
-  architecture: ["Random Forest", "LSTM"] as const,
-  inputs: ["Photodiode reflectance", "Open-Meteo irradiance"] as const,
+  architecture: ["Random Forest (100 estimators)"] as const,
+  inputs: ["efficiency_pct", "irradiance_kwh_m2", "cloud_cover_pct", "humidity_pct", "rainfall_mm", "soiling_loss_pct"] as const,
   classes: ["Dust", "Weather", "Normal"] as const,
   // Row = actual class, Col = predicted class (order matches `classes`)
   confusionMatrix: [
@@ -352,6 +352,6 @@ export const classifierValidation = {
     [1, 2, 22],
   ] as const,
   benchmarkCitation:
-    "80–87% F1 · RF+LSTM tropical soiling benchmarks (Nature 2025, PLOS ONE 2024)",
+    "80–87% F1 · Random Forest tropical soiling benchmarks (Nature 2025, PLOS ONE 2024)",
   pilotNote: "Live F1 score will be validated in first paid pilot deployment.",
 };
