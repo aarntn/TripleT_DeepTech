@@ -260,7 +260,7 @@ export function ModelPerformanceCard({ data, source = "fallback", retro }: Props
         validation samples. {mistakes === 0 ? "No mistakes were found in this test set." : `${mistakes} sample${mistakes === 1 ? " was" : "s were"} misclassified.`}
       </p>
 
-      <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,1.05fr)]">
+      <div className="mt-6 flex flex-col gap-5">
         <section className="rounded-lg border border-[#e9eaeb] bg-white p-4 sm:p-5">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
