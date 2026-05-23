@@ -21,6 +21,7 @@ const fallbackRetro: ClassifierRetroResponse = {
   },
   macro_f1: 0.926,
   weighted_f1: 0.8375,
+  accuracy: 0.8415,
 };
 
 export type ClassifierSource = "backend" | "fallback";
