@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Solare ML Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --white:        #ffffff;
+    --off-white:    #f7faf8;
+    --border-light: #d4e8db;
+    --border-mid:   #a8d4b8;
+    --sage:         #e6f4ec;
+    --mint:         #c8ebd5;
+    --emerald:      #d0f0de;
+    --forest:       #0d4a2f;
+    --forest-mid:   #16653f;
+    --forest-light: #1e8050;
+    --green-text:   #155c38;
+    --green-accent: #22c55e;
+    --green-bright: #4ade80;
+    --body-text:    #374151;
+    --muted:        #6b7280;
+    --tag-bg:       #eaf7ef;
+    --tag-text:     #166534;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--white);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    /* Subtle dot grid */
+    background-image: radial-gradient(circle, #c8e6d0 1px, transparent 1px);
+    background-size: 28px 28px;
+    background-position: 0 0;
+  }
+
+  .canvas {
+    width: 100%;
+    max-width: 1100px;
+    background: var(--white);
+    border-radius: 20px;
+    padding: 48px 48px 44px;
+    border: 1px solid var(--border-light);
+    box-shadow: 0 4px 6px -1px rgba(13,74,47,0.06), 0 20px 60px -12px rgba(13,74,47,0.10);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* decorative corner accent */
+  .canvas::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 220px; height: 220px;
+    background: radial-gradient(circle at top right, #d0f0de 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .canvas::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 160px; height: 160px;
+    background: radial-gradient(circle at bottom left, #e6f4ec 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* ── header ── */
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+    position: relative;
+  }
+
+  .header-kicker {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--forest-light);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .header-kicker::before,
+  .header-kicker::after {
+    content: '';
+    display: block;
+    height: 1px;
+    width: 40px;
+    background: var(--border-mid);
+  }
+
+  .header h1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 34px;
+    font-weight: 800;
+    color: var(--forest);
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+  }
+
+  .header h1 span {
+    color: var(--forest-light);
+  }
+
+  /* ── section label ── */
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--forest-light);
+    margin-bottom: 14px;
+    padding-left: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-light);
+  }
+
+  /* ── pipeline row ── */
+  .pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    flex-shrink: 0;
+  }
+
+  /* ── pipeline boxes ── */
+  .box {
+    flex: 1;
+    border-radius: 14px;
+    padding: 20px 18px 18px;
+    border: 1.5px solid;
+    min-width: 0;
+    position: relative;
+    transition: box-shadow 0.2s;
+  }
+
+  .box:hover {
+    box-shadow: 0 4px 20px rgba(13,74,47,0.10);
+  }
+
+  .box-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+  }
+
+  .box-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.35;
+    margin-bottom: 11px;
+    color: var(--forest);
+  }
+
+  .box-body { font-size: 12px; line-height: 1.6; }
+
+  .tag {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 2px 9px;
+    font-size: 11px;
+    font-weight: 600;
+    margin: 3px 2px 0;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    border: 1px solid var(--border-light);
+  }
+
+  /* box themes — green spectrum */
+  .box-input {
+    background: #f7fbf9;
+    border-color: #b6d9c4;
+  }
+  .box-input .box-label { color: #2d8a5c; }
+  .box-input .tag { background: #ebf7f1; border-color: #b6d9c4; }
+
+  .box-soiling {
+    background: #f0faf4;
+    border-color: #8ec9a8;
+  }
+  .box-soiling .box-label { color: #1e7a4a; }
+  .box-soiling .tag { background: #e3f5eb; border-color: #8ec9a8; }
+
+  .box-classifier {
+    background: #e8f7ef;
+    border-color: #5db87e;
+  }
+  .box-classifier .box-label { color: #166534; }
+  .box-classifier .box-title { color: var(--forest); }
+  .box-classifier .tag { background: #dcf2e7; border-color: #5db87e; }
+
+  .box-forecaster {
+    background: #dff2e8;
+    border-color: #38a169;
+  }
+  .box-forecaster .box-label { color: var(--forest); }
+  .box-forecaster .box-title { color: var(--forest); }
+  .box-forecaster .tag { background: #ccebda; border-color: #38a169; }
+
+  /* ── down arrow ── */
+  .down-arrow {
+    display: flex;
+    justify-content: center;
+    margin: 18px 0 4px;
+  }
+
+  /* ── outputs ── */
+  .outputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-top: 14px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .out-card {
+    border-radius: 13px;
+    padding: 18px 16px;
+    border: 1.5px solid;
+    text-align: center;
+    transition: box-shadow 0.2s;
+  }
+
+  .out-card:hover { box-shadow: 0 4px 16px rgba(13,74,47,0.10); }
+
+  .out-card .icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+
+  .out-card .icon svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .out-card .out-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .out-card .out-body {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+
+  .out-dust {
+    background: #fffbeb;
+    border-color: #d4a847;
+  }
+  .out-dust .out-title { color: #854d0e; }
+
+  .out-weather {
+    background: #f0f7ff;
+    border-color: #7eb3de;
+  }
+  .out-weather .out-title { color: #1e4e8c; }
+
+  .out-normal {
+    background: #f0faf5;
+    border-color: #5db87e;
+  }
+  .out-normal .out-title { color: var(--forest); }
+
+  /* ── validation bar ── */
+  .validation {
+    margin-top: 28px;
+    border-radius: 16px;
+    padding: 22px 28px;
+    background: var(--forest);
+    border: 1.5px solid #0a3d25;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+  }
+
+  .validation::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(74,222,128,0.12) 0%, transparent 65%);
+    pointer-events: none;
+  }
+
+  .val-left .val-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--green-bright);
+    margin-bottom: 5px;
+  }
+
+  .val-left .val-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 3px;
+  }
+
+  .val-left .val-body {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .val-stats { display: flex; gap: 36px; flex-wrap: wrap; }
+
+  .stat { text-align: center; }
+
+  .stat .num {
+    font-family: 'Inter', sans-serif;
+    font-size: 30px;
+    font-weight: 800;
+    color: var(--green-bright);
+    line-height: 1;
+    display: block;
+  }
+
+  .stat .lbl {
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    margin-top: 5px;
+    display: block;
+  }
+
+  /* ── stagger-in animation ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .header       { animation: fadeUp 0.5s ease both; }
+  .pipeline     { animation: fadeUp 0.5s 0.15s ease both; }
+  .down-arrow   { animation: fadeUp 0.5s 0.28s ease both; }
+  .outputs      { animation: fadeUp 0.5s 0.38s ease both; }
+  .validation   { animation: fadeUp 0.5s 0.50s ease both; }
+</style>
+</head>
+<body>
+<div class="canvas">
+
+  <div class="header">
+    <div class="header-kicker">NDTC 2026 · Solar Panel Intelligence</div>
+    <h1>Solare <span>ML Architecture</span></h1>
+  </div>
+
+  <!-- PIPELINE -->
+  <div class="section-label">Pipeline</div>
+  <div class="pipeline">
+
+    <div class="box box-input">
+      <div class="box-label">Input</div>
+      <div class="box-title">Sensor &amp;<br/>Weather Features</div>
+      <div class="box-body">
+        <span class="tag">efficiency_pct</span>
+        <span class="tag">irradiance</span>
+        <span class="tag">cloud_cover</span>
+        <span class="tag">humidity</span>
+        <span class="tag">rainfall_mm</span>
+        <span class="tag">soiling_loss</span>
+      </div>
+    </div>
+
+    <div class="arrow">
+      <svg width="28" height="16" viewBox="0 0 28 16" fill="none">
+        <path d="M0 8h22M16 2l8 6-8 6" stroke="#5db87e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <div class="box box-soiling">
+      <div class="box-label">Physics Model</div>
+      <div class="box-title">Soiling<br/>Accumulation</div>
+      <div class="box-body">
+        <span class="tag">0.30%/day dry</span>
+        <span class="tag">15mm rain reset</span>
+        <span class="tag">20% max cap</span>
+      </div>
+    </div>
+
+    <div class="arrow">
+      <svg width="28" height="16" viewBox="0 0 28 16" fill="none">
+        <path d="M0 8h22M16 2l8 6-8 6" stroke="#38a169" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <div class="box box-classifier">
+      <div class="box-label">ML Classifier</div>
+      <div class="box-title">Random Forest<br/>100 Estimators</div>
+      <div class="box-body">
+        <span class="tag">scikit-learn</span>
+        <span class="tag">3-class output</span>
+        <span class="tag">HMAC-secured API</span>
+      </div>
+    </div>
+
+    <div class="arrow">
+      <svg width="28" height="16" viewBox="0 0 28 16" fill="none">
+        <path d="M0 8h22M16 2l8 6-8 6" stroke="#1e7a4a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <div class="box box-forecaster">
+      <div class="box-label">Forecaster</div>
+      <div class="box-title">3-Day Revenue<br/>Forecast</div>
+      <div class="box-body">
+        <span class="tag">Linear Regression</span>
+        <span class="tag">±5–9pp bands</span>
+        <span class="tag">RM output</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- DOWN ARROW -->
+  <div class="down-arrow">
+    <svg width="16" height="28" viewBox="0 0 16 28" fill="none">
+      <path d="M8 0v22M2 16l6 8 6-8" stroke="#5db87e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  <!-- OUTPUTS -->
+  <div class="section-label">Classifier Outputs</div>
+  <div class="outputs">
+    <div class="out-card out-dust">
+      <div class="icon">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 10h16M4 16h20M4 22h12" stroke="#b45309" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="25" cy="10" r="2.5" fill="#d97706" opacity="0.5"/>
+          <circle cx="22" cy="22" r="2" fill="#d97706" opacity="0.4"/>
+          <path d="M8 6c0-1.1.9-2 2-2s2 .9 2 2" stroke="#b45309" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+        </svg>
+      </div>
+      <div class="out-title">Dust Loss</div>
+      <div class="out-body">Auto-clean queued. Panel flagged for priority maintenance.</div>
+    </div>
+    <div class="out-card out-weather">
+      <div class="icon">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22 14a5 5 0 0 0-9.8-1.4A4 4 0 1 0 12 20h10a4 4 0 0 0 0-8z" stroke="#1e4e8c" stroke-width="2" stroke-linejoin="round" fill="#dbeafe" fill-opacity="0.6"/>
+          <path d="M12 24v2M16 25v2M20 24v2" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="out-title">Weather Loss</div>
+      <div class="out-body">Cleaning deferred. Natural wash expected from incoming rain.</div>
+    </div>
+    <div class="out-card out-normal">
+      <div class="icon">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="16" cy="16" r="12" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+          <path d="M10 16l4 4 8-8" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="out-title">Normal Operation</div>
+      <div class="out-body">No action needed. Inverter telemetry within expected range.</div>
+    </div>
+  </div>
+
+  <!-- VALIDATION -->
+  <div class="validation">
+    <div class="val-left">
+      <div class="val-label">Real-World Validation</div>
+      <div class="val-title">Open-Meteo · Selangor 2024 Retrospective</div>
+      <div class="val-body">366 days of real Malaysian weather data, not synthetic test sets</div>
+    </div>
+    <div class="val-stats">
+      <div class="stat">
+        <span class="num">0.84</span>
+        <span class="lbl">Weighted F1</span>
+      </div>
+      <div class="stat">
+        <span class="num">366</span>
+        <span class="lbl">Days Tested</span>
+      </div>
+      <div class="stat">
+        <span class="num">3</span>
+        <span class="lbl">Classes</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
