@@ -1,0 +1,45 @@
+<h2>AI Classifier Accuracy — Approach Options</h2>
+<p class="subtitle">How should the dashboard address the judge's "show me the model performance data" question?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Extend ClassifierCard with precision/recall table</h3>
+      <p>Add a collapsible "Model Validation" section directly inside the existing ClassifierCard on Map View. Shows a small precision/recall/F1 table computed from the synthetic demo dataset already in the codebase. Framed honestly as "pre-pilot validation on synthetic data."</p>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>Pros</h4><ul><li>Minimal new code — extends existing component</li><li>Lives in the flow judges will see during demo</li><li>Shows real computed numbers, not just labels</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Synthetic data — judges know it's not real-world</li><li>Confined to one panel at a time</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>New "Model Performance" card on Map View</h3>
+      <p>Add a dedicated card below the panel list on Map View showing: model architecture summary (Random Forest + LSTM), a confusion matrix visualization, precision/recall/F1 from synthetic data, and a clear "validation roadmap" — what the paid pilot will produce.</p>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>Pros</h4><ul><li>Stands alone — can be pointed to directly</li><li>Shows full methodology story (architecture → metrics → next step)</li><li>Confusion matrix is visually impressive and shows rigor</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>More surface area to build</li><li>Sits below fold, needs deliberate navigation</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>New "AI Intelligence" sidebar page</h3>
+      <p>Dedicated page under INSIGHTS in the sidebar. Full model story: architecture diagram, feature inputs (photodiode reflectance, Open-Meteo irradiance), precision/recall table, confusion matrix, benchmark citations (Nature 2025, PLOS ONE 2024), and a "Pilot Validation Plan" section.</p>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>Pros</h4><ul><li>Most comprehensive — directly pre-empts every sub-question</li><li>Can be navigated to during Q&A</li><li>Shows Cradle Fund-level technical depth</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Largest build scope — Demo Day is 3 days away</li><li>New nav item might distract from main demo flow</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:24px;padding:16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px">
+  <p class="label">My recommendation</p>
+  <p style="margin-top:6px"><strong>Option B</strong> — new card on Map View. It's scoped to finish in a day, it lives where the demo naturally flows (judges will already be watching the classifier work), and the confusion matrix gives the "show me the data" moment without requiring a new nav page.</p>
+</div>

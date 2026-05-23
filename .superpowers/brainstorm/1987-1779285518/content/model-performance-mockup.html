@@ -1,0 +1,156 @@
+<h2>Model Performance Card — Layout Mockup</h2>
+<p class="subtitle">Sits below the Panel List on Map View. Two layout options — pick what feels right.</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Stacked — matrix on top, table below</h3>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">SolarSense Classifier · Model Performance <span style="float:right;font-size:11px;background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:9999px">Pre-pilot · Synthetic validation</span></div>
+        <div class="mockup-body" style="padding:16px;font-size:13px">
+
+          <!-- Architecture row -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+            <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600">Random Forest</span>
+            <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600">LSTM</span>
+            <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600">Photodiode reflectance</span>
+            <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600">Open-Meteo irradiance</span>
+          </div>
+
+          <!-- Confusion matrix -->
+          <p style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Confusion Matrix — 90 synthetic test samples</p>
+          <table style="border-collapse:collapse;width:100%;margin-bottom:16px;font-size:12px;text-align:center">
+            <thead>
+              <tr>
+                <th style="padding:6px;color:#94a3b8;font-size:11px;font-weight:500;text-align:left">Actual ↓ / Pred →</th>
+                <th style="padding:6px;background:#fef9c3;font-weight:600">Dust</th>
+                <th style="padding:6px;background:#e0f2fe;font-weight:600">Weather</th>
+                <th style="padding:6px;background:#dcfce7;font-weight:600">Normal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:6px;font-weight:600;background:#fef9c3;text-align:left">Dust (36)</td>
+                <td style="padding:6px;font-weight:700;color:#15803d;background:#f0fdf4">30</td>
+                <td style="padding:6px;color:#dc2626">4</td>
+                <td style="padding:6px;color:#dc2626">2</td>
+              </tr>
+              <tr>
+                <td style="padding:6px;font-weight:600;background:#e0f2fe;text-align:left">Weather (32)</td>
+                <td style="padding:6px;color:#dc2626">3</td>
+                <td style="padding:6px;font-weight:700;color:#15803d;background:#f0fdf4">27</td>
+                <td style="padding:6px;color:#dc2626">2</td>
+              </tr>
+              <tr>
+                <td style="padding:6px;font-weight:600;background:#dcfce7;text-align:left">Normal (22)</td>
+                <td style="padding:6px;color:#dc2626">1</td>
+                <td style="padding:6px;color:#dc2626">2</td>
+                <td style="padding:6px;font-weight:700;color:#15803d;background:#f0fdf4">19</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Precision/recall table -->
+          <p style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Per-class Metrics</p>
+          <table style="border-collapse:collapse;width:100%;font-size:12px">
+            <thead>
+              <tr style="background:#f8fafc">
+                <th style="padding:6px 8px;text-align:left;color:#64748b;font-weight:500">Class</th>
+                <th style="padding:6px 8px;text-align:right;color:#64748b;font-weight:500">Precision</th>
+                <th style="padding:6px 8px;text-align:right;color:#64748b;font-weight:500">Recall</th>
+                <th style="padding:6px 8px;text-align:right;color:#64748b;font-weight:500">F1</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-top:1px solid #f1f5f9"><td style="padding:6px 8px;font-weight:600">Dust</td><td style="padding:6px 8px;text-align:right">0.88</td><td style="padding:6px 8px;text-align:right">0.83</td><td style="padding:6px 8px;text-align:right;font-weight:700;color:#15803d">0.85</td></tr>
+              <tr style="border-top:1px solid #f1f5f9"><td style="padding:6px 8px;font-weight:600">Weather</td><td style="padding:6px 8px;text-align:right">0.82</td><td style="padding:6px 8px;text-align:right">0.84</td><td style="padding:6px 8px;text-align:right;font-weight:700;color:#15803d">0.83</td></tr>
+              <tr style="border-top:1px solid #f1f5f9"><td style="padding:6px 8px;font-weight:600">Normal</td><td style="padding:6px 8px;text-align:right">0.83</td><td style="padding:6px 8px;text-align:right">0.86</td><td style="padding:6px 8px;text-align:right;font-weight:700;color:#15803d">0.83</td></tr>
+              <tr style="border-top:2px solid #e2e8f0;background:#f8fafc"><td style="padding:6px 8px;font-weight:700">Macro avg</td><td style="padding:6px 8px;text-align:right;font-weight:700">0.84</td><td style="padding:6px 8px;text-align:right;font-weight:700">0.84</td><td style="padding:6px 8px;text-align:right;font-weight:700;color:#15803d">0.84</td></tr>
+            </tbody>
+          </table>
+
+          <!-- Benchmark + roadmap -->
+          <div style="margin-top:14px;padding:10px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;font-size:12px">
+            <span style="font-weight:600">Architecture target:</span> 80–87% F1 per published RF+LSTM tropical soiling benchmarks (Nature 2025, PLOS ONE 2024)<br>
+            <span style="color:#64748b;margin-top:4px;display:block">Live F1 score will be validated in first paid pilot deployment.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Side-by-side — matrix left, metrics right</h3>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">SolarSense Classifier · Model Performance <span style="float:right;font-size:11px;background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:9999px">Pre-pilot · Synthetic validation</span></div>
+        <div class="mockup-body" style="padding:16px;font-size:13px">
+
+          <!-- Architecture row -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+            <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600">Random Forest + LSTM</span>
+            <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600">Inputs: photodiode reflectance + irradiance</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <!-- Left: confusion matrix -->
+            <div>
+              <p style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Confusion Matrix (90 samples)</p>
+              <table style="border-collapse:collapse;width:100%;font-size:11px;text-align:center">
+                <thead>
+                  <tr>
+                    <th style="padding:4px;color:#94a3b8;font-size:10px;text-align:left">Act↓/Pred→</th>
+                    <th style="padding:4px;background:#fef9c3;font-weight:600">D</th>
+                    <th style="padding:4px;background:#e0f2fe;font-weight:600">W</th>
+                    <th style="padding:4px;background:#dcfce7;font-weight:600">N</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td style="padding:4px;font-weight:600;background:#fef9c3;text-align:left">Dust</td><td style="padding:4px;font-weight:700;color:#15803d">30</td><td style="padding:4px;color:#dc2626">4</td><td style="padding:4px;color:#dc2626">2</td></tr>
+                  <tr><td style="padding:4px;font-weight:600;background:#e0f2fe;text-align:left">Weather</td><td style="padding:4px;color:#dc2626">3</td><td style="padding:4px;font-weight:700;color:#15803d">27</td><td style="padding:4px;color:#dc2626">2</td></tr>
+                  <tr><td style="padding:4px;font-weight:600;background:#dcfce7;text-align:left">Normal</td><td style="padding:4px;color:#dc2626">1</td><td style="padding:4px;color:#dc2626">2</td><td style="padding:4px;font-weight:700;color:#15803d">19</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Right: metrics -->
+            <div>
+              <p style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Per-class Metrics</p>
+              <table style="border-collapse:collapse;width:100%;font-size:11px">
+                <thead><tr style="background:#f8fafc"><th style="padding:4px 6px;text-align:left;color:#64748b">Class</th><th style="padding:4px 6px;text-align:right;color:#64748b">P</th><th style="padding:4px 6px;text-align:right;color:#64748b">R</th><th style="padding:4px 6px;text-align:right;color:#64748b">F1</th></tr></thead>
+                <tbody>
+                  <tr style="border-top:1px solid #f1f5f9"><td style="padding:4px 6px;font-weight:600">Dust</td><td style="padding:4px 6px;text-align:right">0.88</td><td style="padding:4px 6px;text-align:right">0.83</td><td style="padding:4px 6px;text-align:right;font-weight:700;color:#15803d">0.85</td></tr>
+                  <tr style="border-top:1px solid #f1f5f9"><td style="padding:4px 6px;font-weight:600">Weather</td><td style="padding:4px 6px;text-align:right">0.82</td><td style="padding:4px 6px;text-align:right">0.84</td><td style="padding:4px 6px;text-align:right;font-weight:700;color:#15803d">0.83</td></tr>
+                  <tr style="border-top:1px solid #f1f5f9"><td style="padding:4px 6px;font-weight:600">Normal</td><td style="padding:4px 6px;text-align:right">0.83</td><td style="padding:4px 6px;text-align:right">0.86</td><td style="padding:4px 6px;text-align:right;font-weight:700;color:#15803d">0.83</td></tr>
+                  <tr style="border-top:2px solid #e2e8f0;background:#f8fafc"><td style="padding:4px 6px;font-weight:700">Avg</td><td style="padding:4px 6px;text-align:right;font-weight:700">0.84</td><td style="padding:4px 6px;text-align:right;font-weight:700">0.84</td><td style="padding:4px 6px;text-align:right;font-weight:700;color:#15803d">0.84</td></tr>
+                </tbody>
+              </table>
+
+              <!-- Summary numbers -->
+              <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px;text-align:center">
+                  <div style="font-size:20px;font-weight:700;color:#15803d">84%</div>
+                  <div style="font-size:10px;color:#64748b">Macro F1</div>
+                </div>
+                <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:8px;text-align:center">
+                  <div style="font-size:20px;font-weight:700;color:#0369a1">76/90</div>
+                  <div style="font-size:10px;color:#64748b">Correct (84%)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Benchmark + roadmap -->
+          <div style="margin-top:14px;padding:10px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;font-size:11px">
+            <span style="font-weight:600">Architecture target:</span> 80–87% F1 · RF+LSTM tropical soiling benchmarks (Nature 2025, PLOS ONE 2024)<br>
+            <span style="color:#64748b;margin-top:4px;display:block">Live F1 validation → first paid pilot deployment.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
