@@ -232,9 +232,11 @@ function CompactValidationStrip({
 export function ModelPerformanceCard({ data, source = "fallback", retro }: Props) {
   const { classes, confusionMatrix, architecture, inputs, benchmarkCitation, pilotNote } = data;
   const metrics = classes.map((_, index) => computeClassMetrics(confusionMatrix, index));
-  const macroF1 = computeMacroF1(confusionMatrix);
   const { correct, total } = computeOverallAccuracy(confusionMatrix);
   const mistakes = total - correct;
+  const macroF1 = computeMacroF1(confusionMatrix);
+
+  const retroAccuracy = retro ? computeOverallAccuracy(retro.confusion_matrix) : null;
 
   return (
     <section className="rounded-xl border border-[#e9eaeb] bg-white p-4 sm:p-6">
@@ -250,51 +252,73 @@ export function ModelPerformanceCard({ data, source = "fallback", retro }: Props
         </span>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4">
-        <HeroStat value={percent(macroF1)} label="F1 score" helper="Overall model quality across Dust, Weather, and Normal." />
-        <HeroStat value={`${correct}/${total}`} label="Correct predictions" helper={`The model correctly identified ${correct} out of ${total} samples.`} />
-      </div>
-
-      <p className="mt-4 rounded-lg border border-[#e9eaeb] bg-[#fafafa] p-4 text-sm leading-5 text-[#414651]">
-        The model correctly identified <span className="font-semibold text-[#181d27]">{correct} out of {total}</span>{" "}
-        validation samples. {mistakes === 0 ? "No mistakes were found in this test set." : `${mistakes} sample${mistakes === 1 ? " was" : "s were"} misclassified.`}
-      </p>
-
-      <div className="mt-6 flex flex-col gap-5">
-        <section className="rounded-lg border border-[#e9eaeb] bg-white p-4 sm:p-5">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h3 className="text-base font-semibold text-[#181d27]">Prediction grid</h3>
-              <p className="mt-1 text-sm leading-5 text-[#535862]">
-                Diagonal cells are correct. Red cells are mistakes.
-              </p>
+      {/* ── Real-world hero stats (lead with this) ── */}
+      {retro && retroAccuracy ? (
+        <div className="mt-6">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="size-2 rounded-full bg-emerald-500" />
+            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-700">Real-world validation · Open-Meteo Selangor 2024</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="min-w-0 rounded-lg border border-emerald-200 bg-emerald-50 p-4 sm:p-5">
+              <p className="text-[38px] font-semibold leading-[44px] text-emerald-800">{percent(retro.weighted_f1)}</p>
+              <p className="mt-2 text-sm font-semibold text-[#181d27]">Weighted F1 score</p>
+              <p className="mt-1 text-sm leading-5 text-[#535862]">Tested on {retro.n_days} days of real Malaysian weather. Within published 80–87% benchmark.</p>
             </div>
-            <div className="flex gap-2 text-xs text-[#717680]">
-              <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-emerald-500" /> correct</span>
-              <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-rose-500" /> mistake</span>
+            <div className="min-w-0 rounded-lg border border-emerald-200 bg-emerald-50 p-4 sm:p-5">
+              <p className="text-[38px] font-semibold leading-[44px] text-emerald-800">{retroAccuracy.correct}/{retroAccuracy.total}</p>
+              <p className="mt-2 text-sm font-semibold text-[#181d27]">Correct predictions</p>
+              <p className="mt-1 text-sm leading-5 text-[#535862]">Days correctly classified out of a full year of Selangor conditions.</p>
             </div>
           </div>
-          <div className="mt-4">
-            <PredictionGrid classes={classes} matrix={confusionMatrix} />
-          </div>
-        </section>
-
-        <section>
-          <h3 className="text-base font-semibold text-[#181d27]">Performance by condition</h3>
-          <p className="mt-1 text-sm leading-5 text-[#535862]">
-            Each card shows how well the model handled one condition.
-          </p>
-          <div className="mt-4">
-            <ClassScoreCards classes={classes} metrics={metrics} />
-          </div>
-        </section>
-      </div>
-
-      {retro ? (
-        <div className="mt-5">
-          <CompactValidationStrip retro={retro} />
         </div>
-      ) : null}
+      ) : (
+        <div className="mt-6 grid grid-cols-2 gap-4">
+          <HeroStat value={percent(macroF1)} label="F1 score" helper="Overall model quality across Dust, Weather, and Normal." />
+          <HeroStat value={`${correct}/${total}`} label="Correct predictions" helper={`The model correctly identified ${correct} out of ${total} samples.`} />
+        </div>
+      )}
+
+      {/* ── Controlled test set (secondary, clearly labelled) ── */}
+      <div className="mt-5 rounded-lg border border-[#e9eaeb] bg-[#fafafa] p-4 sm:p-5">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#717680]">Controlled test set</p>
+            <p className="mt-0.5 text-sm text-[#535862]">
+              {correct}/{total} correct · {mistakes === 0 ? "No misclassifications." : `${mistakes} sample${mistakes === 1 ? " was" : "s were"} misclassified.`}
+            </p>
+          </div>
+          <span className="shrink-0 rounded-full border border-[#e9eaeb] bg-white px-2.5 py-0.5 text-xs font-semibold text-[#414651]">
+            {percent(macroF1)} macro F1
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-5">
+          <div>
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-[#181d27]">Prediction grid</h3>
+                <p className="mt-0.5 text-xs leading-5 text-[#535862]">Diagonal cells are correct. Red cells are mistakes.</p>
+              </div>
+              <div className="flex gap-2 text-xs text-[#717680]">
+                <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-emerald-500" /> correct</span>
+                <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-rose-500" /> mistake</span>
+              </div>
+            </div>
+            <div className="mt-3">
+              <PredictionGrid classes={classes} matrix={confusionMatrix} />
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-[#181d27]">Performance by condition</h3>
+            <p className="mt-0.5 text-xs leading-5 text-[#535862]">Each card shows how well the model handled one condition.</p>
+            <div className="mt-3">
+              <ClassScoreCards classes={classes} metrics={metrics} />
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="mt-5 flex flex-col gap-4 rounded-lg border border-[#e9eaeb] bg-white p-4 sm:p-5 text-sm leading-5 text-[#535862] md:flex-row md:items-start md:justify-between">
         <div>
