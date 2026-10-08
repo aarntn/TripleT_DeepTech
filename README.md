@@ -1,144 +1,95 @@
-# Solare – Automated Solar O&M Platform
+# Solare
 
-> **UM IP: PI 2024000995** (Automated Solar Panel Cleaning System) +
-> **UM IP: UI 2023002890** (Solar-Heat-Water Harvester)
->
-> Universiti Malaya - UMCIE Commercialisation Initiative - 2026
+**AI-driven cleaning intelligence for solar farms: clean panels when dust losses justify it, not by the calendar.**
 
----
+[![Backend Security Checks](https://github.com/aarntn/TripleT_DeepTech/actions/workflows/backend-security.yml/badge.svg)](https://github.com/aarntn/TripleT_DeepTech/actions/workflows/backend-security.yml)
 
-## What this is
-
-Solare is a combined hardware + software platform that maximises revenue from solar installations through two integrated UM-patented technologies:
-
-1. **Auto Cleaner (TRL 8)** – AI-driven, sensor-triggered panel cleaning using a patented curved-flow fluid distribution system. Restores 15–30% of lost energy output. Reduces manual labour costs by 50–70%.
-2. **Water Harvester (TRL 3)** – Pyramid-structured rainwater collector that supplies up to 72% of the cleaning system's water needs in Malaysia (avg 2,500mm/yr rainfall). Creates a closed-loop, off-grid capable O&M unit.
-
-### Why now
-
-Malaysia's LSS5+ programme opened bids for **4 GW** of new solar capacity in 2025. Budget 2026 added **LSS6** (2 GW, RM 6B private investment). Every new MW of installed capacity is a future O&M contract. Simultaneously, US/Israeli military operations against Iran (Feb 2026) and Hormuz disruption risk have raised energy price volatility — directly improving the ROI case for domestic solar output maximisation.
-
-**Key numbers (5 MW Malaysia baseline):**
-
-| Metric | Value |
-|---|---|
-| Annual revenue recovered | ~RM 316K |
-| Payback period | ~2.5 years |
-| 5-year NPV | ~RM 900K |
-| Carbon credit value | ~RM 18K/yr |
-| System cost | RM 600K (RM 120K/MW) |
+> Built by team **TripleT** (Timing, Technology, Trust) for the **UM Deep Tech Hackathon**, around the Universiti Malaya patented
+> *System and Method for Cleaning a Solar Panel* (**PI 2024000995**).
 
 ---
 
-## Repository structure
+## Problem
 
-```text
-solare/
-├── frontend/                  # Vite + React dashboard (TypeScript)
-│   └── src/
-│       ├── components/        # Dashboard, charts, farm map, metric cards
-│       ├── hooks/             # useSolarGuardData — API orchestration
-│       ├── lib/               # Typed API client
-│       └── utils/             # ROI calculations, formatters
-│
-├── backend/                   # Python FastAPI REST API
-│   ├── api/routes/            # /sensor, /forecast, /weather, /roi, /market
-│   ├── core/                  # Security middleware, error helpers
-│   ├── models/                # Pydantic request/response schemas
-│   └── services/              # Dust classifier, 3-day forecaster, ROI engine
-│
-├── data/
-│   ├── raw/                   # Irradiance CSVs, tariff data
-│   ├── processed/             # Scenario datasets (dusty week, rainy week)
-│   └── scripts/               # Dataset generator, weather fetcher
-│
-├── notebooks/                 # Jupyter EDA + model development traceability
-│
-└── docs/
-    ├── technical/             # Architecture, API reference
-    ├── commercial/            # Unit economics, market analysis
-    └── ip/                    # Patent reference PDFs
-```
+Most solar O&M companies in Malaysia clean panels on a fixed schedule. This wastes money in two ways:
+
+- **Cleaning too early:** crews, water, and downtime are spent on panels that are only slightly dirty, or whose output dropped because of cloud or rain.
+- **Cleaning too late:** dust builds up between scheduled visits, and the panels lose energy every day until the next cleaning.
+
+A fixed schedule can't tell a dust loss, which cleaning fixes, from a weather loss, which goes away by itself.
+
+## Solution
+
+Solare monitors each panel array and decides whether an efficiency drop comes from **dust** or from **weather**:
+
+1. **Monitor.** Read per-array sensor data: efficiency, irradiance, cloud cover, humidity, rainfall, and soiling loss.
+2. **Classify.** A machine-learning classifier marks each array as **Dust**, **Weather**, or **Normal** and gives a confidence score and a plain-language cause.
+3. **Forecast.** A 3-day efficiency and revenue forecast shows whether output will keep falling.
+4. **Recommend.** Arrays classified as Dust go to the top of a cleaning priority queue, ranked by today's loss. The dashboard recommends cleaning today if the forecast is still falling, or at the next maintenance window if it isn't. Arrays classified as Weather are held, with no dispatch.
+5. **Act.** Operators simulate cleaning work orders and see the projected recovery.
+
+In the current build, cleaning work orders are **simulated** in the dashboard. Solare does not control any cleaning hardware yet.
 
 ---
 
-## Quick start
+## Architecture
 
-### Prerequisites
+The system has a FastAPI backend that serves the sensor data, the ML models, and the forecasts, and a React dashboard that turns those outputs into cleaning recommendations.
 
-- Python 3.11+
-- Node.js 18+
+```mermaid
+flowchart LR
+    subgraph Inputs
+        S[Sensor scenario CSVs<br/>data/processed/scenario_*_week.csv]
+        W[Weather provider<br/>synthetic · NASA POWER · OpenWeather]
+    end
 
-### 1 — Backend (Terminal A)
+    subgraph Backend["FastAPI backend"]
+        API1["GET /api/sensor/latest<br/>GET /api/sensor/history"]
+        C["Dust classifier<br/>RandomForest + weather rules<br/>POST /api/sensor/classify"]
+        F["Efficiency forecaster<br/>LinearRegression, 3-day<br/>GET /api/forecast/{array_id}"]
+    end
 
-```bash
-cd backend
-python -m venv venv
+    subgraph Frontend["React dashboard"]
+        Q[Cleaning priority queue<br/>Dust first, ranked by loss today]
+        R[Maintenance recommendation<br/>clean now · next window · hold]
+        O[Simulated work order<br/>projected recovery]
+    end
 
-# Activate:
-# Windows:      .\venv\Scripts\activate
-# macOS/Linux:  source venv/bin/activate
-
-pip install -r requirements.txt
+    S --> API1 --> C
+    S --> F
+    W --> F
+    C -->|Dust / Weather / Normal + confidence| Q
+    F -->|declining forecast?| R
+    Q --> R --> O
 ```
 
-Copy the root `.env.example` to `.env` and set your dev API key:
+### How the models work
 
-```bash
-# From the repo root:
-cp .env.example .env
-# .env already contains SOLARGUARD_API_KEYS=dev-local-key — no changes needed for local dev
-```
-
-Start the server:
-
-```bash
-uvicorn main:app --reload
-# Runs on http://127.0.0.1:8000
-```
-
-### 2 — Frontend (Terminal B)
-
-```bash
-cd frontend
-npm install
-cp .env.example .env
-npm run dev
-# -> http://localhost:5173
-```
-
-The frontend `.env.example` already points to `http://127.0.0.1:8000` with `dev-local-key` — no changes needed for local dev.
-
----
-
-## ML models
-
-The backend runs two scikit-learn models trained at startup from `data/processed/scenario_dusty_week.csv`:
-
-| Model | Purpose | Algorithm |
+| Model | Location | What it does |
 |---|---|---|
-| Dust classifier | Classifies each array as Dust / Weather / Normal | RandomForest |
-| Efficiency forecaster | 3-day revenue + efficiency forecast per array | LinearRegression |
+| Dust classifier | `backend/services/dust_classifier.py` | A `RandomForestClassifier` (100 trees, with `StandardScaler`) is trained on the dusty-week and rainy-week scenario CSVs to predict `dust_flag`. When the prediction isn't dust, rules decide the label: cloud cover above 50% or any rainfall means **Weather**, and everything else is **Normal**. |
+| Efficiency forecaster | `backend/services/forecaster.py` | A `LinearRegression` is fitted per array on daily efficiency against day index, cloud, humidity, rainfall, and irradiance. It predicts 3 days ahead with ±1.5σ residual bounds, using weather-provider rows when they're available. |
 
-`MODEL_LOAD_MODE=train-fallback` (default) trains in memory if no saved `.joblib` files are found. Production deployments should use `MODEL_LOAD_MODE=verified` with SHA256 hashes.
+`MODEL_LOAD_MODE=train-fallback` (the default outside production) trains the classifier in memory at startup. `MODEL_LOAD_MODE=verified`, which is required when `APP_ENV=production`, loads saved `.joblib` files only if they match `DUST_CLASSIFIER_SHA256` and `DUST_SCALER_SHA256`.
 
----
+### API endpoints
 
-## Optional: real weather data
+All routes except `GET /` (health check) require `Authorization: Bearer <api key>`.
 
-The checked-in synthetic datasets are the default for deterministic demos and offline use. To add real weather context:
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/` | Health check |
+| GET | `/api/sensor/latest` | Latest reading per array |
+| GET | `/api/sensor/history` | Full sensor history per array |
+| POST | `/api/sensor/classify` | Dust / Weather / Normal classification |
+| GET | `/api/forecast/{array_id}` | 3-day efficiency and revenue forecast |
+| GET | `/api/weather/forecast/{array_id}` | Normalised weather forecast rows |
+| GET | `/api/efficiency/{location}` | Monthly efficiency profile (`malaysia` or `gcc`) |
+| GET | `/api/market/locations` | Location assumptions |
+| GET | `/api/market/hormuz` | Tariff-shock scenario metadata |
+| POST | `/api/roi/calculate` | ROI calculator for the Revenue & ROI page |
 
-```bash
-cd data/scripts
-
-# Fetch NASA POWER historical irradiance
-python fetch_weather_data.py --provider nasa-power --start 20240701 --end 20240707 --array-id A1
-
-# Or fetch OpenWeather live forecast
-python fetch_weather_data.py --provider openweather --array-id A1 --api-key "$OPENWEATHER_API_KEY"
-```
-
-Set `WEATHER_PROVIDER=openweather` in `.env` with `OPENWEATHER_API_KEY` to call OpenWeather live. Keep weather API keys backend-only.
+Valid array IDs are `A1`, `A2`, `B1`, `B2`, `C1`, and `C2`. The interactive docs at `/docs` are off unless `ENABLE_API_DOCS=true`.
 
 ---
 
@@ -147,61 +98,180 @@ Set `WEATHER_PROVIDER=openweather` in `.env` with `OPENWEATHER_API_KEY` to call 
 | Layer | Tech |
 |---|---|
 | Frontend | React 18, TypeScript, Vite, Recharts, Tailwind CSS |
-| Backend | Python 3.11+, FastAPI, Pydantic v2, Pandas |
+| Backend | Python, FastAPI, Uvicorn, Pydantic v2, Pandas, NumPy |
 | ML | scikit-learn (RandomForest, LinearRegression), joblib |
-| Data | NumPy, Pandas, Matplotlib, Seaborn |
 | Notebooks | Jupyter |
-| Deploy | Vercel (frontend) · Render (backend) |
+| CI | GitHub Actions: pytest, `pip check`, `pip-audit`, gitleaks |
+
+Versions are pinned in `backend/requirements.txt` and `frontend/package.json`.
 
 ---
 
-## IP context
+## Getting started
 
-| Patent | Title | TRL | MR | Status |
-|---|---|---|---|---|
-| PI 2024000995 | System and Method for Cleaning a Solar Panel | 8 | 7 | Pilot-tested, commercial-ready |
-| UI 2023002890 | Solar-Heat-Water Harvester | 3 | 3 | Lab-validated, field pilot pending |
+### Prerequisites
 
-Reference PDFs in `docs/ip/`. Licensing enquiries: **umcie@um.edu.my** · +603-79677351
+- Python 3.11+ (CI uses 3.12)
+- Node.js 18+ <!-- TODO: confirm minimum Node version; Vite 8 may need a newer Node -->
 
----
+### 1. Backend (terminal A)
 
-## Environment variables
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate          # Windows: .\venv\Scripts\activate
+pip install -r requirements.txt
 
-Backend (root `.env`):
-
-```env
-CARBON_PRICE_RM=40
-APP_ENV=development
-SOLARGUARD_API_KEYS=dev-local-key
-CORS_ORIGINS=http://localhost:5173
-TRUSTED_HOSTS=localhost,127.0.0.1
-RATE_LIMIT_PER_MINUTE=120
-SENSITIVE_RATE_LIMIT_PER_MINUTE=120
-MODEL_LOAD_MODE=train-fallback
-API_HOST=127.0.0.1
-API_PORT=8000
-WEATHER_PROVIDER=synthetic
-WEATHER_LAT=3.139
-WEATHER_LON=101.6869
+cp ../.env.example ../.env        # backend reads the repo-root .env
+uvicorn main:app --reload         # http://127.0.0.1:8000
 ```
 
-Frontend (`frontend/.env`):
+### 2. Frontend (terminal B)
 
-```env
-VITE_API_BASE_URL=http://127.0.0.1:8000
-VITE_SOLARGUARD_API_KEY=dev-local-key
-VITE_USE_MOCKS=false
+```bash
+cd frontend
+npm install
+cp .env.example .env
+npm run dev                       # http://localhost:5173
 ```
 
-For production: set `APP_ENV=production`, switch to `SOLARGUARD_API_KEY_SHA256S` (hashed keys), set exact `CORS_ORIGINS` and `TRUSTED_HOSTS`, enable TLS, and use `MODEL_LOAD_MODE=verified` with `DUST_CLASSIFIER_SHA256` / `DUST_SCALER_SHA256`.
+The example env files are already set up for local development, so the frontend and backend share the same dev API key.
+
+### Environment variables
+
+**Backend** (`.env` in the repo root, template `.env.example`):
+
+| Variable | Purpose |
+|---|---|
+| `APP_ENV` | `development`, `test`, or `production` |
+| `SOLARGUARD_API_KEYS` / `SOLARGUARD_API_KEY_SHA256S` | Accepted API keys, plain (dev) or SHA-256 hashed (production) |
+| `CORS_ORIGINS`, `TRUSTED_HOSTS`, `TRUSTED_PROXY_IPS` | Network allow-lists |
+| `MAX_REQUEST_BYTES` | Request body size limit |
+| `RATE_LIMIT_PER_MINUTE`, `SENSITIVE_RATE_LIMIT_PER_MINUTE` | Rate limits. The sensitive limit covers `/classify` and `/roi/calculate`. |
+| `ENABLE_API_DOCS`, `ENABLE_HSTS` | Swagger docs and HSTS header toggles |
+| `MODEL_LOAD_MODE`, `DUST_CLASSIFIER_SHA256`, `DUST_SCALER_SHA256` | How the classifier is loaded and verified |
+| `API_HOST`, `API_PORT` | Server bind address |
+| `CARBON_PRICE_RM` | Carbon price used in calculations |
+| `WEATHER_PROVIDER`, `WEATHER_LAT`, `WEATHER_LON`, `WEATHER_PROCESSED_PATH`, `OPENWEATHER_API_KEY` | Weather source settings (default `synthetic`) |
+
+Keep weather API keys on the backend only.
+
+**Frontend** (`frontend/.env`, template `frontend/.env.example`):
+
+| Variable | Purpose |
+|---|---|
+| `VITE_API_BASE_URL` | Backend URL |
+| `VITE_SOLARGUARD_API_KEY` | API key sent as a bearer token |
+| `VITE_USE_MOCKS` | If `true`, the dashboard falls back to bundled demo data when the backend can't be reached |
+
+The `SOLARGUARD_*` variable names come from the project's earlier name, SolarGuard.
+
+### Running tests
+
+The backend tests need `pytest` and `httpx`, which are not in `requirements.txt`. Install them, then run the tests from the repo root:
+
+```bash
+pip install pytest httpx
+python -m pytest backend/tests
+```
+
+The frontend has a type check (`npm run typecheck`) but no test suite.
+
+### Optional: real weather data
+
+The synthetic datasets in the repo are the default, so demos are deterministic and work offline. To fetch real weather data:
+
+```bash
+cd data/scripts
+python fetch_weather_data.py --provider nasa-power --start 20240701 --end 20240707 --array-id A1
+python fetch_weather_data.py --provider openweather --array-id A1 --api-key "$OPENWEATHER_API_KEY"
+```
+
+Set `WEATHER_PROVIDER=openweather` and `OPENWEATHER_API_KEY` to fetch the forecast live from the backend.
 
 ---
 
-## Contributing
+## Project structure
 
-This repository is part of a UMCIE commercialisation project. For collaboration or pilot partnership enquiries, open an issue or contact the team.
+```text
+.
+├── backend/                     # FastAPI service (entry point: main.py)
+│   ├── api/routes/              # sensor, forecast, weather, efficiency, market, roi
+│   ├── core/                    # Security middleware (auth, rate limit, headers), error handlers
+│   ├── models/                  # Pydantic request/response schemas
+│   ├── services/                # Dust classifier, forecaster, weather provider, ROI, degradation
+│   ├── scripts/load_smoke.py    # Load smoke test
+│   └── tests/                   # pytest suite
+├── frontend/                    # Vite + React + TypeScript dashboard
+│   ├── public/data/             # CSVs bundled for demo fallback
+│   └── src/
+│       ├── components/          # Priority queue, classifier card, recommendation, charts, map
+│       │   └── pages/           # Overview, Farm Map, Panel Detail, Revenue & ROI
+│       ├── hooks/               # useSolarGuardData: backend orchestration and fallback
+│       ├── lib/api.ts           # Typed API client
+│       └── utils/               # Recommendation logic, calculations
+├── data/
+│   ├── processed/               # Synthetic sensor scenarios, efficiency profiles, forecast input
+│   └── scripts/                 # Dataset generators, weather fetcher
+├── notebooks/                   # Degradation analysis (Jupyter)
+├── docs/
+│   ├── technical/               # Architecture notes
+│   ├── commercial/              # Commercial research notes
+│   └── ip/                      # Patent reference PDFs
+└── .github/workflows/           # Backend security CI
+```
 
 ---
 
-Built with data grounded in: IEA Strait of Hormuz Report 2025, ISIS Malaysia Fuel Resilience Analysis Mar 2026, Malaysia Budget 2026 (Belanjawan 2026), Ember Solar Malaysia Report Aug 2024, SolarQuarter LSS pipeline data Feb 2025.
+## Usage / demo
+
+The dashboard has three main views: **Operations Overview**, **Farm Map** (click an array to open **Panel Detail**), and **Revenue & ROI**.
+
+Here is an example classification request for array A1, using the latest reading in `scenario_dusty_week.csv`:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/sensor/classify \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"array_id":"A1","efficiency_pct":60.68,"irradiance_kwh_m2":1.52,
+       "cloud_cover_pct":10.17,"humidity_pct":74.03,"rainfall_mm":0.0,
+       "soiling_loss_pct":36.0}'
+```
+
+```json
+{
+  "type": "dust",
+  "confidence": 1.0,
+  "cause": "Sustained efficiency drop without cloud cover — dust accumulation confirmed."
+}
+```
+
+On the dashboard, this result moves A1 up the cleaning priority queue and enables **Simulate work order**.
+
+<!-- TODO: confirm and add dashboard screenshots (none are checked in yet) -->
+
+---
+
+## Roadmap
+
+These items come from gaps in the current code:
+
+- Replace the synthetic sensor scenarios with live on-site sensor feeds. The sensor endpoints currently read `data/processed/scenario_dusty_week.csv`.
+- Connect recommendations to the patented cleaning hardware. Work orders are only simulated today.
+- Ship pre-trained, hash-verified model files for `MODEL_LOAD_MODE=verified` deployments.
+- Add a frontend test suite.
+
+---
+
+## Team and acknowledgements
+
+- **Team TripleT** (Timing, Technology, Trust). <!-- TODO: confirm team member names to list -->
+- Built for the **UM Deep Tech Hackathon**, Universiti Malaya.
+- Based on UM patent **PI 2024000995**, *System and Method for Cleaning a Solar Panel*. The codebase also references **UI 2023002890**, *Solar-Heat-Water Harvester*, as a complementary water source for cleaning.
+- Patent reference PDFs are in `docs/ip/`. For licensing enquiries, contact UMCIE at **umcie@um.edu.my**.
+
+---
+
+## Licence
+
+This repository has no `LICENSE` file, so all rights are reserved by default. <!-- TODO: confirm licence with the team and UMCIE (patented IP involved) -->
